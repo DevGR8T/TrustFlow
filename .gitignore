@@ -1,0 +1,91 @@
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+pubspec.lock
+.pub-cache/
+.pub/
+/build/
+**/coverage
+
+# Dependency files
+pubspec.lock
+
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/ServiceDefinitions.json
+ios/Pods/
+ios/Runner.xcworkspace/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/.symlinks/
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/ephemeral/
+ios/Runner/GoogleService-Info.plist
+
+# Android
+android/.gradle/
+android/app/*.iml
+android/app/build.gradle.kts
+android/local.properties
+android/.idea/
+android/captures/
+android/.settings/
+android/gradle/wrapper/gradle-wrapper.properties
+android/.externalNativeBuild
+/lib/firebase_options.dart
+
+# VS Code
+.vscode/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# macOS
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+macos/Pods/
+macos/.symlinks/
+macos/Flutter/App.framework
+macos/Flutter/Flutter.framework
+macos/Flutter/Generated.xcconfig
+macos/Runner.xcworkspace/
+
+# Web related
+lib/generated_plugin_registrant.dart
+
+# Windows
+windows/flutter/ephemeral/
+
+# Linux
+linux/flutter/ephemeral/
+
+# Other common system files
+.DS_Store
+*.swp
+*.lock
+*.log
+
+# Firebase generated files
+google-services.json
+GoogleService-Info.plist
+
+# Secure API's
+.env
+.env.prod
+*.env
+
+# Keystore
+android/key.properties
+android/app/upload-keystore.jks
+
+# Obfuscation related
+app.*.map.json
