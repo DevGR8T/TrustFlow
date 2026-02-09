@@ -1,4 +1,4 @@
-/// Verification Result Entity
+
 /// Represents the result of any verification step (BVN, Document, Face)
 class VerificationResult {
   final bool isSuccessful;
