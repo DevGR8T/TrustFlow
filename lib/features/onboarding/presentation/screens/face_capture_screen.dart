@@ -9,7 +9,6 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
-import 'package:trust_flow/features/onboarding/presentation/widgets/shared_widgets.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
 import '../bloc/onboarding_bloc.dart';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
-import 'package:trust_flow/features/onboarding/presentation/widgets/shared_widgets.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
