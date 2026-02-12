@@ -1,44 +1,27 @@
+import 'package:equatable/equatable.dart';
 
-/// Represents the result of any verification step (BVN, Document, Face)
-class VerificationResult {
-  final bool isSuccessful;
-  final String message;
-  final Map<String, dynamic>? data;
+enum VerificationStatus { pending, approved, rejected, underReview }
+
+class VerificationResult extends Equatable {
+  final String referenceId;
+  final VerificationStatus status;
+  final String? message;
+  final List<String> failureReasons;
   final DateTime timestamp;
 
   const VerificationResult({
-    required this.isSuccessful,
-    required this.message,
-    this.data,
+    required this.referenceId,
+    required this.status,
+    this.message,
+    this.failureReasons = const [],
     required this.timestamp,
   });
 
-  factory VerificationResult.success({
-    required String message,
-    Map<String, dynamic>? data,
-  }) {
-    return VerificationResult(
-      isSuccessful: true,
-      message: message,
-      data: data,
-      timestamp: DateTime.now(),
-    );
-  }
-
-  factory VerificationResult.failure({
-    required String message,
-    Map<String, dynamic>? data,
-  }) {
-    return VerificationResult(
-      isSuccessful: false,
-      message: message,
-      data: data,
-      timestamp: DateTime.now(),
-    );
-  }
+  bool get isApproved  => status == VerificationStatus.approved;
+  bool get isRejected  => status == VerificationStatus.rejected;
+  bool get isPending   => status == VerificationStatus.pending;
 
   @override
-  String toString() {
-    return 'VerificationResult(success: $isSuccessful, message: $message)';
-  }
+  List<Object?> get props =>
+      [referenceId, status, message, failureReasons, timestamp];
 }

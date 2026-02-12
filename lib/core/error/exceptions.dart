@@ -1,49 +1,48 @@
-/// Base exception for all API errors
-class ApiException implements Exception {
+// ── Exceptions (data-layer facing) ────────────────────────────
+class ServerException implements Exception {
   final String message;
-  
-  ApiException(this.message);
-  
+  final String? code;
+  final int? statusCode;
+
+  const ServerException({
+    required this.message,
+    this.code,
+    this.statusCode,
+  });
+
   @override
-  String toString() => message;
+  String toString() => 'ServerException: $message (code: $code, status: $statusCode)';
 }
 
-/// Network-related errors (timeouts, no connection, etc.)
-class NetworkException extends ApiException {
-  NetworkException(String message) : super(message);
+class NetworkException implements Exception {
+  const NetworkException();
+
+  @override
+  String toString() => 'NetworkException: No internet connection';
 }
 
-/// Validation errors (wrong format, missing fields, etc.)
-class ValidationException extends ApiException {
-  ValidationException(String message) : super(message);
+class BvnException implements Exception {
+  final String message;
+  final String? code;
+
+  const BvnException({required this.message, this.code});
+
+  @override
+  String toString() => 'BvnException: $message';
 }
 
-/// BVN/NIN verification failures
-class VerificationException extends ApiException {
-  VerificationException(String message) : super(message);
+class DocumentException implements Exception {
+  final String message;
+  const DocumentException({required this.message});
+
+  @override
+  String toString() => 'DocumentException: $message';
 }
 
-/// Document upload/quality failures
-class DocumentException extends ApiException {
-  DocumentException(String message) : super(message);
-}
+class CacheException implements Exception {
+  final String message;
+  const CacheException({this.message = 'Cache read/write failed'});
 
-/// Face capture/liveness failures
-class FaceException extends ApiException {
-  FaceException(String message) : super(message);
-}
-
-/// Server errors (500, etc.)
-class ServerException extends ApiException {
-  ServerException(String message) : super(message);
-}
-
-/// Authentication errors (token expired, unauthorized, etc.)
-class AuthenticationException extends ApiException {
-  AuthenticationException(String message) : super(message);
-}
-
-/// Data parsing errors (malformed JSON, etc.)
-class DataParsingException extends ApiException {
-  DataParsingException(String message) : super(message);
+  @override
+  String toString() => 'CacheException: $message';
 }

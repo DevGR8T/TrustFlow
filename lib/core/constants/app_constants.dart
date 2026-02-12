@@ -1,26 +1,24 @@
-/// App Constants
-class AppConstants {
-  // App Info
-  static const String appName = 'TrustFlow';
-  static const String appVersion = '1.0.0';
+abstract class AppConstants {
+  // ── API ───────────────────────────────────────────────────────
+  static const String baseUrl           = 'https://api.veritas-kyc.ng/v1';
+  static const Duration timeoutDuration = Duration(seconds: 30);
 
-  // Onboarding Steps
-  static const int totalOnboardingSteps = 5;
-
-  // Validation
+  // ── BVN ───────────────────────────────────────────────────────
   static const int bvnLength = 11;
-  static const int ninLength = 11;
-  static const int minNameLength = 3;
-  static const int maxNameLength = 100;
 
-  // File Upload
-  static const int maxImageSizeInBytes = 5 * 1024 * 1024; // 5MB
-  static const List<String> allowedImageFormats = ['jpg', 'jpeg', 'png'];
+  // ── Document upload ───────────────────────────────────────────
+  static const int maxImageSizeBytes  = 5 * 1024 * 1024; // 5 MB
+  static const int imageQuality       = 85;              // JPEG quality
 
-  // Retry
-  static const int maxRetryAttempts = 3;
+  // ── Storage keys ─────────────────────────────────────────────
+  static const String progressKey     = 'onboarding_progress';
+  static const String sessionKey      = 'session_token';
 
-  // Storage Keys
-  static const String progressKey = 'onboarding_progress';
-  static const String userDataKey = 'user_data';
+  // ── Onboarding steps ─────────────────────────────────────────
+  static const int totalSteps         = 5;
+  static const int stepConsent        = 0;
+  static const int stepPersonalInfo   = 1;
+  static const int stepBvn            = 2;
+  static const int stepDocument       = 3;
+  static const int stepFace           = 4;
 }

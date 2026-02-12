@@ -1,47 +1,55 @@
 import 'package:equatable/equatable.dart';
 
-/// Base Failure class
-/// Represents failures in the domain layer
+// ── Failures (domain-facing) ──────────────────────────────────
 abstract class Failure extends Equatable {
   final String message;
-  
-  const Failure(this.message);
-  
+  final String? code;
+
+  const Failure({required this.message, this.code});
+
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, code];
 }
 
-/// Network Failure
 class NetworkFailure extends Failure {
-  const NetworkFailure(String message) : super(message);
+  const NetworkFailure({
+    super.message = 'No internet connection. Please check your network.',
+    super.code,
+  });
 }
 
-/// Server Failure
 class ServerFailure extends Failure {
-  const ServerFailure(String message) : super(message);
+  const ServerFailure({
+    required super.message,
+    super.code,
+  });
 }
 
-/// Validation Failure
-class ValidationFailure extends Failure {
-  const ValidationFailure(String message) : super(message);
+class BvnFailure extends Failure {
+  const BvnFailure({required super.message, super.code});
 }
 
-/// Cache Failure (local storage errors)
+class DocumentUploadFailure extends Failure {
+  const DocumentUploadFailure({required super.message, super.code});
+}
+
+class FaceCaptureFailure extends Failure {
+  const FaceCaptureFailure({required super.message, super.code});
+}
+
 class CacheFailure extends Failure {
-  const CacheFailure(String message) : super(message);
+  const CacheFailure({
+    super.message = 'Failed to read saved data.',
+    super.code,
+  });
 }
 
-/// Verification Failure (BVN/NIN/Document/Face)
-class VerificationFailure extends Failure {
-  const VerificationFailure(String message) : super(message);
+class ValidationFailure extends Failure {
+  const ValidationFailure({required super.message});
 }
 
-/// Authentication Failure
-class AuthenticationFailure extends Failure {
-  const AuthenticationFailure(String message) : super(message);
-}
-
-/// Unknown Failure
 class UnknownFailure extends Failure {
-  const UnknownFailure(String message) : super(message);
+  const UnknownFailure({
+    super.message = 'An unexpected error occurred. Please try again.',
+  });
 }

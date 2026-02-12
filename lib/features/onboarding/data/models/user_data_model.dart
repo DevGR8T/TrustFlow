@@ -1,67 +1,43 @@
-import 'dart:convert';
 import '../../domain/entities/user_data.dart';
 
-/// User Data Model
-/// Extends UserData entity with JSON serialization
 class UserDataModel extends UserData {
   const UserDataModel({
-    String? fullName,
-    String? dateOfBirth,
-    String? phoneNumber,
-    String? email,
-    String? bvn,
-  }) : super(
-          fullName: fullName,
-          dateOfBirth: dateOfBirth,
-          phoneNumber: phoneNumber,
-          email: email,
-          bvn: bvn,
-        );
+    required super.firstName,
+    required super.lastName,
+    required super.dateOfBirth,
+    required super.phoneNumber,
+    required super.email,
+    super.bvn,
+  });
 
-  /// Create from UserData entity
+  factory UserDataModel.fromJson(Map<String, dynamic> json) {
+    return UserDataModel(
+      firstName:   json['first_name']   as String,
+      lastName:    json['last_name']    as String,
+      dateOfBirth: json['date_of_birth']as String,
+      phoneNumber: json['phone_number'] as String,
+      email:       json['email']        as String,
+      bvn:         json['bvn']          as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'first_name':   firstName,
+    'last_name':    lastName,
+    'date_of_birth':dateOfBirth,
+    'phone_number': phoneNumber,
+    'email':        email,
+    if (bvn != null) 'bvn': bvn,
+  };
+
   factory UserDataModel.fromEntity(UserData entity) {
     return UserDataModel(
-      fullName: entity.fullName,
+      firstName:   entity.firstName,
+      lastName:    entity.lastName,
       dateOfBirth: entity.dateOfBirth,
       phoneNumber: entity.phoneNumber,
-      email: entity.email,
-      bvn: entity.bvn,
-    );
-  }
-
-  /// Create from JSON
-  factory UserDataModel.fromJson(String source) {
-    return UserDataModel.fromMap(json.decode(source));
-  }
-
-  /// Create from Map
-  factory UserDataModel.fromMap(Map<String, dynamic> map) {
-    return UserDataModel(
-      fullName: map['fullName'],
-      dateOfBirth: map['dateOfBirth'],
-      phoneNumber: map['phoneNumber'],
-      email: map['email'],
-      bvn: map['bvn'],
-    );
-  }
-
-  /// Convert to JSON
-  String toJson() => json.encode(toMap());
-
-  @override
-  UserDataModel copyWith({
-    String? fullName,
-    String? dateOfBirth,
-    String? phoneNumber,
-    String? email,
-    String? bvn,
-  }) {
-    return UserDataModel(
-      fullName: fullName ?? this.fullName,
-      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
-      phoneNumber: phoneNumber ?? this.phoneNumber,
-      email: email ?? this.email,
-      bvn: bvn ?? this.bvn,
+      email:       entity.email,
+      bvn:         entity.bvn,
     );
   }
 }

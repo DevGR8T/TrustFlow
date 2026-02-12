@@ -7,33 +7,38 @@ version: 1.0.0+1
 environment:
   sdk: ^3.8.1
 
-
 dependencies:
   flutter:
     sdk: flutter
-  
+
   # State Management
   flutter_bloc: ^8.1.3
   equatable: ^2.0.5
-  
+  dartz: ^0.10.1
+  dio: ^5.4.0
+
   # Service Locator
   get_it: ^7.6.4
-  
+
   # Local Storage
   shared_preferences: ^2.2.2
-  
-  # Camera
+
+  # UI & Fonts
+  google_fonts: ^6.1.0 
+
+  # Camera & ML
   image_picker: ^1.0.4
+  path_provider: ^2.1.1
   camera: ^0.10.5+5
-  
+  google_mlkit_face_detection: ^0.10.0
+
   # Permissions
-  permission_handler: ^11.0.1
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-
 
 flutter:
   uses-material-design: true

@@ -1,106 +1,78 @@
+import 'package:equatable/equatable.dart';
 
-/// Tracks which steps the user has completed
 enum OnboardingStep {
-  welcome,
   consent,
   personalInfo,
-  bvnVerification,
-  documentCapture,
-  faceCapture,
-  verification,
+  bvn,
+  document,
+  face,
   complete,
 }
 
-class OnboardingProgress {
+class OnboardingProgress extends Equatable {
   final OnboardingStep currentStep;
-  final bool isConsentGiven;
-  final bool isPersonalInfoComplete;
-  final bool isBvnVerified;
-  final bool isDocumentUploaded;
-  final bool isFaceCaptured;
-  final bool isVerificationComplete;
+  final bool consentGiven;
+  final bool personalInfoComplete;
+  final bool bvnVerified;
+  final bool documentUploaded;
+  final bool faceUploaded;
 
   const OnboardingProgress({
-    required this.currentStep,
-    this.isConsentGiven = false,
-    this.isPersonalInfoComplete = false,
-    this.isBvnVerified = false,
-    this.isDocumentUploaded = false,
-    this.isFaceCaptured = false,
-    this.isVerificationComplete = false,
+    this.currentStep = OnboardingStep.consent,
+    this.consentGiven = false,
+    this.personalInfoComplete = false,
+    this.bvnVerified = false,
+    this.documentUploaded = false,
+    this.faceUploaded = false,
   });
 
-  /// Initial state
-  factory OnboardingProgress.initial() {
-    return const OnboardingProgress(
-      currentStep: OnboardingStep.welcome,
-    );
-  }
+  int get stepIndex => currentStep.index;
 
-  /// Create copy with updated fields
-  OnboardingProgress copyWith({
-    OnboardingStep? currentStep,
-    bool? isConsentGiven,
-    bool? isPersonalInfoComplete,
-    bool? isBvnVerified,
-    bool? isDocumentUploaded,
-    bool? isFaceCaptured,
-    bool? isVerificationComplete,
-  }) {
+  // Add fromJson factory
+  factory OnboardingProgress.fromJson(Map<String, dynamic> json) {
     return OnboardingProgress(
-      currentStep: currentStep ?? this.currentStep,
-      isConsentGiven: isConsentGiven ?? this.isConsentGiven,
-      isPersonalInfoComplete: isPersonalInfoComplete ?? this.isPersonalInfoComplete,
-      isBvnVerified: isBvnVerified ?? this.isBvnVerified,
-      isDocumentUploaded: isDocumentUploaded ?? this.isDocumentUploaded,
-      isFaceCaptured: isFaceCaptured ?? this.isFaceCaptured,
-      isVerificationComplete: isVerificationComplete ?? this.isVerificationComplete,
+      currentStep: OnboardingStep.values[json['currentStep'] as int? ?? 0],
+      consentGiven: json['consentGiven'] as bool? ?? false,
+      personalInfoComplete: json['personalInfoComplete'] as bool? ?? false,
+      bvnVerified: json['bvnVerified'] as bool? ?? false,
+      documentUploaded: json['documentUploaded'] as bool? ?? false,
+      faceUploaded: json['faceUploaded'] as bool? ?? false,
     );
   }
 
-  /// Convert to Map for storage
-  Map<String, dynamic> toMap() {
+  // Add toJson method
+  Map<String, dynamic> toJson() {
     return {
       'currentStep': currentStep.index,
-      'isConsentGiven': isConsentGiven,
-      'isPersonalInfoComplete': isPersonalInfoComplete,
-      'isBvnVerified': isBvnVerified,
-      'isDocumentUploaded': isDocumentUploaded,
-      'isFaceCaptured': isFaceCaptured,
-      'isVerificationComplete': isVerificationComplete,
+      'consentGiven': consentGiven,
+      'personalInfoComplete': personalInfoComplete,
+      'bvnVerified': bvnVerified,
+      'documentUploaded': documentUploaded,
+      'faceUploaded': faceUploaded,
     };
   }
 
-  /// Create from Map
-  factory OnboardingProgress.fromMap(Map<String, dynamic> map) {
+  OnboardingProgress copyWith({
+    OnboardingStep? currentStep,
+    bool? consentGiven,
+    bool? personalInfoComplete,
+    bool? bvnVerified,
+    bool? documentUploaded,
+    bool? faceUploaded,
+  }) {
     return OnboardingProgress(
-      currentStep: OnboardingStep.values[map['currentStep'] ?? 0],
-      isConsentGiven: map['isConsentGiven'] ?? false,
-      isPersonalInfoComplete: map['isPersonalInfoComplete'] ?? false,
-      isBvnVerified: map['isBvnVerified'] ?? false,
-      isDocumentUploaded: map['isDocumentUploaded'] ?? false,
-      isFaceCaptured: map['isFaceCaptured'] ?? false,
-      isVerificationComplete: map['isVerificationComplete'] ?? false,
+      currentStep:          currentStep          ?? this.currentStep,
+      consentGiven:         consentGiven         ?? this.consentGiven,
+      personalInfoComplete: personalInfoComplete ?? this.personalInfoComplete,
+      bvnVerified:          bvnVerified          ?? this.bvnVerified,
+      documentUploaded:     documentUploaded     ?? this.documentUploaded,
+      faceUploaded:         faceUploaded         ?? this.faceUploaded,
     );
   }
 
-  /// Calculate completion percentage
-  double get completionPercentage {
-    int completedSteps = 0;
-    const totalSteps = 6;
-
-    if (isConsentGiven) completedSteps++;
-    if (isPersonalInfoComplete) completedSteps++;
-    if (isBvnVerified) completedSteps++;
-    if (isDocumentUploaded) completedSteps++;
-    if (isFaceCaptured) completedSteps++;
-    if (isVerificationComplete) completedSteps++;
-
-    return completedSteps / totalSteps;
-  }
-
   @override
-  String toString() {
-    return 'OnboardingProgress(step: $currentStep, completion: ${(completionPercentage * 100).toStringAsFixed(0)}%)';
-  }
+  List<Object?> get props => [
+    currentStep, consentGiven, personalInfoComplete,
+    bvnVerified, documentUploaded, faceUploaded,
+  ];
 }

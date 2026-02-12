@@ -1,32 +1,25 @@
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
 import '../entities/verification_result.dart';
-import '../entities/onboarding_progress.dart';
-import '../entities/user_data.dart';
 
-
-/// Defines the contract for data operations
-/// Implementation will be in the data layer
 abstract class VerificationRepository {
-  /// Verify BVN
-  Future<VerificationResult> verifyBvn(String bvn);
+  Future<Either<Failure, void>> verifyBvn(String bvn);
 
-  /// Upload document
-  Future<VerificationResult> uploadDocument(String imagePath);
+  Future<Either<Failure, void>> uploadDocument({
+    required String documentType,
+    required String frontImagePath,
+    String? backImagePath,
+  });
 
-  /// Upload face capture
-  Future<VerificationResult> uploadFaceCapture(String imagePath);
+  Future<Either<Failure, void>> uploadFaceCapture(
+  String imagePath, {
+  bool livenessVerified,
+  Map<String, dynamic>? livenessData,
+});
 
-  /// Check final verification status
-  Future<VerificationResult> checkVerificationStatus();
+  Future<Either<Failure, VerificationResult>> getVerificationStatus();
 
-  /// Save user progress
-  Future<void> saveProgress(OnboardingProgress progress, UserData userData);
+  Future<Either<Failure, void>> saveProgress(Map<String, dynamic> progress);
 
-  /// Get saved progress
-  Future<OnboardingProgress?> getSavedProgress();
-
-  /// Get saved user data
-  Future<UserData?> getSavedUserData();
-
-  /// Clear all saved data
-  Future<void> clearAllData();
+  Future<Either<Failure, Map<String, dynamic>>> getSavedProgress();
 }

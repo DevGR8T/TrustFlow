@@ -1,109 +1,63 @@
-/// Input Validators
-class Validators {
-  /// Validate full name
-  static String? validateName(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Please enter your full name';
-    }
-    if (value.trim().length < 3) {
-      return 'Name must be at least 3 characters';
-    }
-    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value)) {
-      return 'Name can only contain letters and spaces';
-    }
-    return null;
-  }
-
-  /// Validate phone number
-  static String? validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your phone number';
-    }
-    
-    // Remove spaces and special characters
-    final cleaned = value.replaceAll(RegExp(r'[^\d]'), '');
-    
-    if (cleaned.length < 10 || cleaned.length > 11) {
-      return 'Please enter a valid phone number';
-    }
-    
-    return null;
-  }
-
-  /// Validate email (optional)
-  static String? validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null; // Email is optional
-    }
-    
-    final emailRegex = RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-    );
-    
-    if (!emailRegex.hasMatch(value)) {
-      return 'Please enter a valid email address';
-    }
-    
-    return null;
-  }
-
-  /// Validate BVN
+abstract class AppValidators {
+  // BVN: exactly 11 digits
   static String? validateBvn(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your BVN';
-    }
-    
-    if (value.length != 11) {
-      return 'BVN must be exactly 11 digits';
-    }
-    
-    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-      return 'BVN must contain only numbers';
-    }
-    
+    if (value == null || value.isEmpty) return 'Please enter your BVN';
+    if (value.length != 11) return 'BVN must be exactly 11 digits';
+    if (!RegExp(r'^\d{11}$').hasMatch(value)) return 'BVN must contain digits only';
     return null;
   }
 
-  /// Validate date of birth
+  // Nigerian phone: 11 digits starting with 0, or 10 digits
+  static String? validatePhone(String? value) {
+    if (value == null || value.isEmpty) return 'Phone number is required';
+    final cleaned = value.replaceAll(RegExp(r'\s+'), '');
+    if (!RegExp(r'^(0[789]\d{9}|\+234[789]\d{9})$').hasMatch(cleaned)) {
+      return 'Enter a valid Nigerian phone number';
+    }
+    return null;
+  }
+
+  static String? validateEmail(String? value) {
+    if (value == null || value.isEmpty) return 'Email address is required';
+    if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(value)) {
+      return 'Enter a valid email address';
+    }
+    return null;
+  }
+
+  static String? validateRequired(String? value, {String? fieldName}) {
+    if (value == null || value.trim().isEmpty) {
+      return '${fieldName ?? 'This field'} is required';
+    }
+    return null;
+  }
+
+  static String? validateName(String? value, {String? fieldName}) {
+    if (value == null || value.trim().isEmpty) {
+      return '${fieldName ?? 'Name'} is required';
+    }
+    if (value.trim().length < 2) {
+      return '${fieldName ?? 'Name'} is too short';
+    }
+    if (!RegExp(r"^[a-zA-Z\s'-]+$").hasMatch(value.trim())) {
+      return 'Enter a valid name (letters only)';
+    }
+    return null;
+  }
+
   static String? validateDateOfBirth(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your date of birth';
-    }
-    
-    // Basic format check (DD/MM/YYYY)
-    if (!RegExp(r'^\d{2}/\d{2}/\d{4}$').hasMatch(value)) {
-      return 'Please use DD/MM/YYYY format';
-    }
-    
-    // Parse and validate date
-    try {
-      final parts = value.split('/');
-      final day = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-      
-      final date = DateTime(year, month, day);
-      final now = DateTime.now();
-      
-      // Check if date is in the future
-      if (date.isAfter(now)) {
-        return 'Date cannot be in the future';
-      }
-      
-      // Check minimum age (18 years)
-      final age = now.year - date.year;
-      if (age < 18) {
-        return 'You must be at least 18 years old';
-      }
-      
-      // Check maximum age (reasonable limit)
-      if (age > 100) {
-        return 'Please enter a valid date of birth';
-      }
-      
-      return null;
-    } catch (e) {
-      return 'Please enter a valid date';
-    }
+    if (value == null || value.isEmpty) return 'Date of birth is required';
+    // Expect DD/MM/YYYY
+    final parts = value.split('/');
+    if (parts.length != 3) return 'Use format DD/MM/YYYY';
+    final day   = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final year  = int.tryParse(parts[2]);
+    if (day == null || month == null || year == null) return 'Invalid date';
+    final dob = DateTime(year, month, day);
+    final age = DateTime.now().difference(dob).inDays ~/ 365;
+    if (age < 18) return 'You must be at least 18 years old';
+    if (age > 100) return 'Enter a valid date of birth';
+    return null;
   }
 }

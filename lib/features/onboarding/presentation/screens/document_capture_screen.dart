@@ -2,15 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
+import 'package:trust_flow/features/onboarding/presentation/widgets/shared_widgets.dart';
+import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
 import '../bloc/onboarding_bloc.dart';
 import '../bloc/onboarding_event.dart';
 import '../bloc/onboarding_state.dart';
 import '../widgets/custom_button.dart';
-import '../widgets/progress_indicator_widget.dart';
 import '../widgets/error_dialog.dart';
+import '../widgets/loading_overlay.dart';
+import '../widgets/progress_indicator_widget.dart';
 import 'face_capture_screen.dart';
+import 'consent_screen.dart' show _NavBackButton, _SubtleGridBackground, _fadeRoute;
 
 class DocumentCaptureScreen extends StatefulWidget {
   const DocumentCaptureScreen({Key? key}) : super(key: key);
@@ -19,371 +24,669 @@ class DocumentCaptureScreen extends StatefulWidget {
   State<DocumentCaptureScreen> createState() => _DocumentCaptureScreenState();
 }
 
-class _DocumentCaptureScreenState extends State<DocumentCaptureScreen> {
-  File? _capturedImage;
-  final ImagePicker _picker = ImagePicker();
+class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _enterController;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
 
-  Future<void> _captureDocument() async {
+  final ImagePicker _picker = ImagePicker();
+  
+  _DocumentType? _selectedType;
+  String? _frontImagePath;
+  String? _backImagePath;
+
+  bool get _requiresBack =>
+      _selectedType != null && _selectedType != _DocumentType.passport;
+
+  bool get _canProceed =>
+      _selectedType != null &&
+      _frontImagePath != null &&
+      (!_requiresBack || _backImagePath != null);
+
+  @override
+  void initState() {
+    super.initState();
+    _enterController = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 600),
+    );
+    _fadeAnim  = CurvedAnimation(parent: _enterController, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _enterController, curve: Curves.easeOutCubic));
+    _enterController.forward();
+  }
+
+  @override
+  void dispose() {
+    _enterController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _captureImage(bool isFront) async {
     try {
+      // Show source selection dialog
+      final source = await _showImageSourceDialog();
+      if (source == null) return;
+
       final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1080,
+        source: source,
+        imageQuality: 85, // Compress to 85% quality
+        maxWidth: 1920,   // Max width for performance
+        maxHeight: 1920,  // Max height for performance
       );
 
       if (image != null) {
         setState(() {
-          _capturedImage = File(image.path);
+          if (isFront) {
+            _frontImagePath = image.path;
+          } else {
+            _backImagePath = image.path;
+          }
         });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Camera error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
+        ErrorDialog.show(
+          context,
+          title: 'Camera Error',
+          message: 'Failed to capture image. Please try again.',
+          primaryActionLabel: 'OK',
         );
       }
     }
   }
 
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.primary,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              
+              const Text(
+                'Select Image Source',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              _ImageSourceOption(
+                icon: Icons.camera_alt_outlined,
+                label: 'Take Photo',
+                onTap: () => Navigator.pop(context, ImageSource.camera),
+              ),
+              const Divider(height: 1, color: AppColors.primaryBorder),
+              _ImageSourceOption(
+                icon: Icons.photo_library_outlined,
+                label: 'Choose from Gallery',
+                onTap: () => Navigator.pop(context, ImageSource.gallery),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _retake(bool isFront) {
+    setState(() {
+      if (isFront) {
+        _frontImagePath = null;
+      } else {
+        _backImagePath = null;
+      }
+    });
+  }
+
+  void _onContinue() {
+    if (_frontImagePath == null) return;
+    
+    context.read<OnboardingBloc>().add(
+      UploadDocumentEvent(
+        documentType: _selectedType!.label,
+        frontImagePath: _frontImagePath!,
+        backImagePath: _requiresBack ? _backImagePath : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<OnboardingBloc, OnboardingState>(
+    return BlocListener<OnboardingBloc, OnboardingState>(
       listener: (context, state) {
-        if (state is DocumentUploadSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Document uploaded successfully!'),
-              backgroundColor: AppColors.success,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-
-          Future.delayed(const Duration(milliseconds: 800), () {
-            if (mounted) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => BlocProvider.value(
-                    value: context.read<OnboardingBloc>(),
-                    child: const FaceCaptureScreen(),
-                  ),
-                ),
-              );
-            }
-          });
+        if (state is OnboardingLoading) {
+          LoadingOverlay.show(context, message: 'Uploading document…');
+        } else {
+          LoadingOverlay.hide(context);
         }
-
-        if (state is DocumentUploadError) {
+        if (state is DocumentUploaded) {
+          Navigator.push(context, fadeRoute(const FaceCaptureScreen()));
+        } else if (state is OnboardingError) {
           ErrorDialog.show(
             context,
             title: 'Upload Failed',
             message: state.message,
-            onRetry: () {
-              setState(() {
-                _capturedImage = null;
-              });
-            },
+            primaryActionLabel: 'Try Again',
           );
         }
       },
-      builder: (context, state) {
-        final isUploading = state is DocumentUploading;
-
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-              onPressed: () => Navigator.pop(context),
-            ),
-            title: const Text(
-              AppStrings.documentTitle,
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Progress Indicator
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: const OnboardingProgressIndicator(
-                    currentStep: 3,
-                    totalSteps: 5,
+      child: Scaffold(
+        backgroundColor: AppColors.primary,
+        body: Stack(
+          children: [
+            const SubtleGridBackground(),
+            SafeArea(
+              child: FadeTransition(
+                opacity: _fadeAnim,
+                child: SlideTransition(
+                  position: _slideAnim,
+                  child: Column(
+                    children: [
+                      _buildAppBar(context),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              const OnboardingProgressBar(currentStep: 3),
+                              const SizedBox(height: 32),
+                              _buildHeader(),
+                              const SizedBox(height: 28),
+                              _buildDocTypeSelector(),
+                              if (_selectedType != null) ...[
+                                const SizedBox(height: 28),
+                                _buildCaptureSection(),
+                              ],
+                              const SizedBox(height: 32),
+                            ],
+                          ),
+                        ),
+                      ),
+                      _buildBottomBar(context),
+                    ],
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
+  Widget _buildAppBar(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      child: Row(
+        children: [
+          NavBackButton(onTap: () => Navigator.pop(context)),
+          const Spacer(),
+          const StepCounterBadge(currentStep: 3, totalSteps: 5),
+        ],
+      ),
+    );
+  }
 
-                        // Title
-                        const Text(
-                          'Take a photo of your ID',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          AppStrings.documentTitle,
+          style: TextStyle(
+            fontSize: 30, fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary, letterSpacing: -0.7, height: 1.15,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(width: 36, height: 3,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+                colors: [AppColors.gold, AppColors.goldLight]),
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          AppStrings.documentSubtitle,
+          style: TextStyle(fontSize: 14, color: AppColors.textMuted, height: 1.6),
+        ),
+      ],
+    );
+  }
 
-                        const SizedBox(height: 12),
+  Widget _buildDocTypeSelector() {
+    final types = _DocumentType.values;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'SELECT DOCUMENT TYPE',
+          style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w600,
+            color: AppColors.textDisabled, letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 2.4,
+          children: types.map((t) => _DocTypeChip(
+            type: t,
+            selected: _selectedType == t,
+            onTap: () => setState(() {
+              _selectedType = t;
+              _frontImagePath = null;
+              _backImagePath  = null;
+            }),
+          )).toList(),
+        ),
+      ],
+    );
+  }
 
-                        // Document Types
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.divider),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Accepted documents:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              _buildDocumentType(Icons.credit_card, 'Driver\'s License'),
-                              _buildDocumentType(Icons.how_to_vote, 'Voter\'s Card'),
-                              _buildDocumentType(Icons.flight, 'International Passport'),
-                              _buildDocumentType(Icons.badge, 'National ID Card'),
-                            ],
-                          ),
-                        ),
+  Widget _buildCaptureSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'CAPTURE DOCUMENT',
+          style: TextStyle(
+            fontSize: 11, fontWeight: FontWeight.w600,
+            color: AppColors.textDisabled, letterSpacing: 0.8,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _CaptureCard(
+          label: AppStrings.documentFront,
+          imagePath: _frontImagePath,
+          onCapture: () => _captureImage(true),
+          onRetake: () => _retake(true),
+        ),
+        if (_requiresBack) ...[
+          const SizedBox(height: 12),
+          _CaptureCard(
+            label: AppStrings.documentBack,
+            imagePath: _backImagePath,
+            onCapture: () => _captureImage(false),
+            onRetake: () => _retake(false),
+          ),
+        ],
+        const SizedBox(height: 16),
+        _buildTips(),
+      ],
+    );
+  }
 
-                        const SizedBox(height: 24),
+  Widget _buildTips() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBorder, width: 1),
+      ),
+      child: Column(
+        children: const [
+          _TipRow(Icons.wb_sunny_outlined, 'Use good lighting — avoid shadows or glare'),
+          SizedBox(height: 8),
+          _TipRow(Icons.crop_free_rounded, 'Ensure all 4 corners of the document are visible'),
+          SizedBox(height: 8),
+          _TipRow(Icons.text_fields_rounded, 'Text must be sharp and legible'),
+        ],
+      ),
+    );
+  }
 
-                        // Tips Box
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.info.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.info.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.lightbulb_outline,
-                                    color: AppColors.info,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Tips for a clear photo',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              _buildTip('Ensure good lighting'),
-                              _buildTip('Place ID on a flat, dark surface'),
-                              _buildTip('Avoid glare and shadows'),
-                              _buildTip('Make sure all text is readable'),
-                              _buildTip('Capture entire document in frame'),
-                            ],
-                          ),
-                        ),
+  Widget _buildBottomBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        border: Border(
+          top: BorderSide(color: AppColors.primaryBorder, width: 1),
+        ),
+      ),
+      child: PrimaryButton(
+        label: AppStrings.documentConfirm,
+        onPressed: _canProceed ? _onContinue : null,
+      ),
+    );
+  }
+}
 
-                        const SizedBox(height: 24),
+class _ImageSourceOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
-                        // Image Preview or Placeholder
-                        if (_capturedImage != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Preview',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  constraints: const BoxConstraints(
-                                    maxHeight: 300,
-                                  ),
-                                  child: Image.file(
-                                    _capturedImage!,
-                                    fit: BoxFit.contain,
-                                    width: double.infinity,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        else
-                          Container(
-                            height: 250,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.divider,
-                                width: 2,
-                                style: BorderStyle.solid,
-                              ),
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_a_photo_outlined,
-                                    size: 64,
-                                    color: AppColors.textSecondary.withOpacity(0.5),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No document captured yet',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+  const _ImageSourceOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-                        const SizedBox(height: 32),
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.gold.withOpacity(0.1),
+        ),
+        child: Icon(icon, color: AppColors.gold, size: 20),
+      ),
+      title: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textPrimary,
+        ),
+      ),
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        color: AppColors.textDisabled,
+      ),
+    );
+  }
+}
+
+class _DocTypeChip extends StatelessWidget {
+  final _DocumentType type;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DocTypeChip({required this.type, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.gold.withOpacity(0.08) : AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.gold.withOpacity(0.5) : AppColors.primaryBorder,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(type.icon,
+                size: 16,
+                color: selected ? AppColors.gold : AppColors.textDisabled),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                type.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? AppColors.gold : AppColors.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CaptureCard extends StatelessWidget {
+  final String label;
+  final String? imagePath;
+  final VoidCallback onCapture;
+  final VoidCallback onRetake;
+
+  const _CaptureCard({
+    required this.label,
+    required this.imagePath,
+    required this.onCapture,
+    required this.onRetake,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final captured = imagePath != null;
+    return GestureDetector(
+      onTap: captured ? null : onCapture,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: 150,
+        decoration: BoxDecoration(
+          color: captured
+              ? AppColors.successDim
+              : AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: captured
+                ? AppColors.success.withOpacity(0.4)
+                : AppColors.primaryBorder,
+            width: captured ? 1.5 : 1,
+          ),
+        ),
+        child: Stack(
+          children: [
+            // Show captured image
+            if (captured)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(13),
+                child: Image.file(
+                  File(imagePath!),
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+
+            // Dashed border effect when idle
+            if (!captured)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: CustomPaint(painter: _DashedBorderPainter()),
+                ),
+              ),
+
+            // Overlay content
+            if (captured)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.4),
+                        Colors.black.withOpacity(0.7),
                       ],
                     ),
                   ),
                 ),
+              ),
 
-                // Bottom Buttons
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, -5),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!captured) ...[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.gold.withOpacity(0.1),
                       ),
-                    ],
-                  ),
-                  child: _capturedImage == null
-                      ? CustomButton(
-                          text: 'Capture Document',
-                          icon: Icons.camera_alt_outlined,
-                          onPressed: _captureDocument,
-                        )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: CustomButton(
-                                text: AppStrings.retakeButton,
-                                isOutlined: true,
-                                onPressed: isUploading
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _capturedImage = null;
-                                        });
-                                      },
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              child: CustomButton(
-                                text: AppStrings.continueButton,
-                                isLoading: isUploading,
-                                icon: Icons.upload_outlined,
-                                onPressed: isUploading
-                                    ? null
-                                    : () {
-                                        context.read<OnboardingBloc>().add(
-                                              DocumentSubmitted(
-                                                imagePath: _capturedImage!.path,
-                                              ),
-                                            );
-                                      },
-                              ),
-                            ),
-                          ],
+                      child: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: AppColors.gold,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Tap to capture $label',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ] else ...[
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.success,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '$label captured',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: onRetake,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                ),
-              ],
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          'Retake',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
+}
 
-  Widget _buildDocumentType(IconData icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Text(
+class _TipRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  const _TipRow(this.icon, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppColors.textDisabled),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
             text,
-            style: const TextStyle(fontSize: 15),
+            style: const TextStyle(
+                fontSize: 12, color: AppColors.textMuted, height: 1.4),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dashWidth = 6.0, dashGap = 5.0;
+    final paint = Paint()
+      ..color = AppColors.primaryBorder
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+    final path = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0.75, 0.75, size.width - 1.5, size.height - 1.5),
+        const Radius.circular(14),
+      ));
+    _drawDashedPath(canvas, path, paint, dashWidth, dashGap);
   }
 
-  Widget _buildTip(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 8),
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-              color: AppColors.info,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14, height: 1.5),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _drawDashedPath(Canvas c, Path p, Paint paint, double dw, double dg) {
+    for (final metric in p.computeMetrics()) {
+      double dist = 0;
+      while (dist < metric.length) {
+        final end = (dist + dw).clamp(0.0, metric.length);
+        c.drawPath(metric.extractPath(dist, end), paint);
+        dist += dw + dg;
+      }
+    }
   }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+enum _DocumentType {
+  nin(AppStrings.docNIN, Icons.credit_card_outlined),
+  passport(AppStrings.docPassport, Icons.book_outlined),
+  drivers(AppStrings.docDrivers, Icons.drive_eta_outlined),
+  voters(AppStrings.docVoters, Icons.how_to_vote_outlined);
+
+  final String label;
+  final IconData icon;
+  const _DocumentType(this.label, this.icon);
 }

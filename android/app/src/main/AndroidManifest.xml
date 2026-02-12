@@ -1,4 +1,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Camera permissions for face capture -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.front" android:required="false" />
+    
+    <!-- Storage permissions for saving captured images -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+                     android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+                     android:maxSdkVersion="32" />
+    
+    <!-- Internet permission (if you need to upload images) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <application
         android:label="trust_flow"
         android:name="${applicationName}"

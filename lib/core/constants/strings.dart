@@ -1,69 +1,87 @@
-/// App Strings
-class AppStrings {
-  // Welcome Screen
-  static const String welcomeTitle = 'Welcome to TrustFlow';
+abstract class AppStrings {
+  // ── App ──────────────────────────────────────────────────────
+  static const String appName         = 'TrustFlow';
+  static const String appTagline      = 'Identity Verification';
+
+  // ── Welcome ──────────────────────────────────────────────────
+  static const String welcomeTitle    = 'Verify Your\nIdentity';
   static const String welcomeSubtitle =
-      'Complete your verification to get started';
+      'Complete your KYC in under 5 minutes to\nunlock full account access.';
   static const String getStartedButton = 'Get Started';
 
-  // Consent Screen
-  static const String consentTitle = 'Your Data & Privacy';
-  static const String consentMessage =
-      'We collect your personal information to verify your identity, '
-      'comply with regulatory requirements, and protect against fraud.';
-  static const String consentCheckbox =
-      'I agree to the terms and consent to data processing';
+  // ── Consent ──────────────────────────────────────────────────
+  static const String consentTitle    = 'Data Consent';
+  static const String consentSubtitle =
+      'We collect and process the following data to verify your identity in compliance with CBN regulations.';
+  static const String consentAgree    = 'I Agree & Continue';
+  static const String consentDecline  = 'Decline';
 
-  // Personal Info Screen
-  static const String personalInfoTitle = 'Personal Information';
-  static const String fullNameLabel = 'Full Name';
-  static const String fullNameHint = 'As shown on your ID';
-  static const String dateOfBirthLabel = 'Date of Birth';
-  static const String phoneLabel = 'Phone Number';
-  static const String emailLabel = 'Email (Optional)';
+  // ── Personal Info ────────────────────────────────────────────
+  static const String personalInfoTitle    = 'Personal Details';
+  static const String personalInfoSubtitle = 'Enter your details exactly as they appear on your government ID.';
+  static const String firstNameLabel       = 'First Name';
+  static const String lastNameLabel        = 'Last Name';
+  static const String dobLabel             = 'Date of Birth';
+  static const String phoneLabel           = 'Phone Number';
+  static const String emailLabel           = 'Email Address';
+  static const String continueButton       = 'Continue';
 
-  // BVN Screen
-  static const String bvnTitle = 'BVN Verification';
-  static const String bvnLabel = 'Bank Verification Number';
-  static const String bvnHint = 'Enter 11-digit BVN';
-  static const String bvnInfo =
-      'Your BVN helps us confirm your identity is real and matches your provided information.';
+  // ── BVN ──────────────────────────────────────────────────────
+  static const String bvnTitle    = 'BVN Verification';
+  static const String bvnSubtitle =
+      'Enter your 11-digit Bank Verification Number. Your BVN is used solely for identity verification.';
+  static const String bvnLabel     = 'Bank Verification Number';
+  static const String bvnHint      = '00000000000';
+  static const String bvnVerify    = 'Verify BVN';
+  static const String bvnWhatsThis = 'What is a BVN?';
 
-  // Document Screen
-  static const String documentTitle = 'Upload ID Document';
-  static const String documentTips = 'Tips for a clear photo:\n'
-      '• Ensure good lighting\n'
-      '• Place ID on flat surface\n'
-      '• Avoid glare and shadows\n'
-      '• All text must be readable';
+  // ── Document ─────────────────────────────────────────────────
+  static const String documentTitle    = 'Upload Document';
+  static const String documentSubtitle = 'Choose a valid government-issued photo ID.';
+  static const String documentFront    = 'Front of Document';
+  static const String documentBack     = 'Back of Document';
+  static const String documentCapture  = 'Capture Document';
+  static const String documentRetake   = 'Retake Photo';
+  static const String documentConfirm  = 'Confirm & Continue';
 
-  // Face Capture Screen
-  static const String faceTitle = 'Face Verification';
-  static const String faceInstructions = 'Instructions:\n'
-      '• Remove glasses/hat\n'
-      '• Face camera directly\n'
-      '• Ensure good lighting\n'
-      '• Keep still';
+  // ── Document types ───────────────────────────────────────────
+  static const String docNIN       = 'National ID (NIN)';
+  static const String docPassport  = 'International Passport';
+  static const String docDrivers   = "Driver's Licence";
+  static const String docVoters    = "Voter's Card";
 
-  // Verification Status
-  static const String verificationPending = 'Verifying Your Information';
-  static const String verificationPendingMessage =
-      'This usually takes a few moments. Please wait...';
-  static const String verificationApproved = 'Verification Complete!';
-  static const String verificationApprovedMessage =
-      'Your account has been successfully verified.';
-  static const String verificationFailed = 'Verification Failed';
+  // ── Face capture ─────────────────────────────────────────────
+  static const String faceTitle       = 'Face Verification';
+  static const String faceSubtitle    = 'Position your face within the frame and ensure good lighting.';
+  static const String faceTakePhoto   = 'Take Selfie';
+  static const String faceRetake      = 'Retake';
+  static const String faceConfirm     = 'Use This Photo';
 
-  // Buttons
-  static const String continueButton = 'Continue';
-  static const String retryButton = 'Try Again';
-  static const String captureButton = 'Capture';
-  static const String retakeButton = 'Retake';
-  static const String submitButton = 'Submit';
-  static const String cancelButton = 'Cancel';
+  // ── Verification status ──────────────────────────────────────
+  static const String statusPendingTitle   = 'Verification\nIn Progress';
+  static const String statusPendingBody    = 'We\'re reviewing your documents. This usually takes 2–5 minutes.';
+  static const String statusSuccessTitle   = 'Identity\nVerified';
+  static const String statusSuccessBody    = 'Your identity has been successfully verified. You can now access all features.';
+  static const String statusFailedTitle    = 'Verification\nFailed';
+  static const String statusFailedBody     = 'We couldn\'t verify your identity. Please review the issues below and try again.';
+  static const String statusRetry         = 'Try Again';
+  static const String statusDone          = 'Go to Dashboard';
 
-  // Errors
-  static const String genericError = 'An unexpected error occurred';
-  static const String networkError = 'Network error. Please check your connection.';
-  static const String validationError = 'Please check your input and try again';
+  // ── Errors ───────────────────────────────────────────────────
+  static const String errorGeneric        = 'Something went wrong. Please try again.';
+  static const String errorNetwork        = 'No internet connection. Check your network and retry.';
+  static const String errorBvnInvalid     = 'Invalid BVN. Please check and try again.';
+  static const String errorBvnNotFound    = 'BVN not found. Ensure you entered the correct number.';
+  static const String errorUploadFailed   = 'Upload failed. Please try again.';
+  static const String errorCameraPermission = 'Camera access is required to capture documents.';
+  static const String errorTimeout        = 'Request timed out. Please try again.';
+
+  // ── Progress steps ───────────────────────────────────────────
+  static const List<String> onboardingSteps = [
+    'Consent',
+    'Details',
+    'BVN',
+    'Document',
+    'Selfie',
+  ];
 }

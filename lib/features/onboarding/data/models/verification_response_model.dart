@@ -1,45 +1,41 @@
-import 'dart:convert';
 import '../../domain/entities/verification_result.dart';
 
-/// Verification Response Model
-/// Handles API response structure
-class VerificationResponseModel {
-  final bool success;
-  final String message;
-  final Map<String, dynamic>? data;
-
+class VerificationResponseModel extends VerificationResult {
   const VerificationResponseModel({
-    required this.success,
-    required this.message,
-    this.data,
+    required super.referenceId,
+    required super.status,
+    super.message,
+    super.failureReasons,
+    required super.timestamp,
   });
 
-  /// Convert to VerificationResult entity
-  VerificationResult toEntity() {
-    if (success) {
-      return VerificationResult.success(
-        message: message,
-        data: data,
-      );
-    } else {
-      return VerificationResult.failure(
-        message: message,
-        data: data,
-      );
-    }
-  }
+  factory VerificationResponseModel.fromJson(Map<String, dynamic> json) {
+    final statusStr = json['status'] as String? ?? 'pending';
+    final status = switch (statusStr.toLowerCase()) {
+      'approved'     => VerificationStatus.approved,
+      'rejected'     => VerificationStatus.rejected,
+      'under_review' => VerificationStatus.underReview,
+      _              => VerificationStatus.pending,
+    };
 
-  /// Create from Map
-  factory VerificationResponseModel.fromMap(Map<String, dynamic> map) {
     return VerificationResponseModel(
-      success: map['success'] ?? false,
-      message: map['message'] ?? '',
-      data: map['data'],
+      referenceId:    json['reference_id'] as String,
+      status:         status,
+      message:        json['message']      as String?,
+      failureReasons: (json['failure_reasons'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      timestamp: DateTime.parse(
+          json['timestamp'] as String? ?? DateTime.now().toIso8601String()),
     );
   }
 
-  /// Create from JSON
-  factory VerificationResponseModel.fromJson(String source) {
-    return VerificationResponseModel.fromMap(json.decode(source));
-  }
+  Map<String, dynamic> toJson() => {
+    'reference_id':    referenceId,
+    'status':          status.name,
+    'message':         message,
+    'failure_reasons': failureReasons,
+    'timestamp':       timestamp.toIso8601String(),
+  };
 }
