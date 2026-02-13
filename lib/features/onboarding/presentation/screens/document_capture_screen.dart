@@ -6,6 +6,9 @@ import 'package:trust_flow/features/onboarding/presentation/widgets/page_transit
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
+import '../../domain/entities/document_type.dart';
+import '../../domain/repositories/document_capture_repository.dart';
+import '../../data/repositories/document_capture_repository_impl.dart';
 import '../bloc/onboarding_bloc.dart';
 import '../bloc/onboarding_event.dart';
 import '../bloc/onboarding_state.dart';
@@ -28,15 +31,13 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
   late AnimationController _enterController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
+  late DocumentCaptureRepository _documentRepo;
 
-  final ImagePicker _picker = ImagePicker();
-  
-  _DocumentType? _selectedType;
+  DocumentType? _selectedType;
   String? _frontImagePath;
   String? _backImagePath;
 
-  bool get _requiresBack =>
-      _selectedType != null && _selectedType != _DocumentType.passport;
+  bool get _requiresBack => _selectedType?.requiresBackImage ?? false;
 
   bool get _canProceed =>
       _selectedType != null &&
@@ -46,10 +47,12 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
   @override
   void initState() {
     super.initState();
+    _documentRepo = DocumentCaptureRepositoryImpl();
     _enterController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600),
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
     );
-    _fadeAnim  = CurvedAnimation(parent: _enterController, curve: Curves.easeOut);
+    _fadeAnim = CurvedAnimation(parent: _enterController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
         .animate(CurvedAnimation(parent: _enterController, curve: Curves.easeOutCubic));
     _enterController.forward();
@@ -63,23 +66,17 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
 
   Future<void> _captureImage(bool isFront) async {
     try {
-      // Show source selection dialog
       final source = await _showImageSourceDialog();
       if (source == null) return;
 
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 85, // Compress to 85% quality
-        maxWidth: 1920,   // Max width for performance
-        maxHeight: 1920,  // Max height for performance
-      );
+      final imagePath = await _documentRepo.captureDocument(source);
 
-      if (image != null) {
+      if (imagePath != null) {
         setState(() {
           if (isFront) {
-            _frontImagePath = image.path;
+            _frontImagePath = imagePath;
           } else {
-            _backImagePath = image.path;
+            _backImagePath = imagePath;
           }
         });
       }
@@ -108,7 +105,6 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Handle bar
               Container(
                 width: 40,
                 height: 4,
@@ -118,7 +114,6 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
                 ),
               ),
               const SizedBox(height: 24),
-              
               const Text(
                 'Select Image Source',
                 style: TextStyle(
@@ -128,7 +123,6 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              
               _ImageSourceOption(
                 icon: Icons.camera_alt_outlined,
                 label: 'Take Photo',
@@ -159,14 +153,14 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
 
   void _onContinue() {
     if (_frontImagePath == null) return;
-    
+
     context.read<OnboardingBloc>().add(
-      UploadDocumentEvent(
-        documentType: _selectedType!.label,
-        frontImagePath: _frontImagePath!,
-        backImagePath: _requiresBack ? _backImagePath : null,
-      ),
-    );
+          UploadDocumentEvent(
+            documentType: _selectedType!.label,
+            frontImagePath: _frontImagePath!,
+            backImagePath: _requiresBack ? _backImagePath : null,
+          ),
+        );
   }
 
   @override
@@ -255,12 +249,17 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
         const Text(
           AppStrings.documentTitle,
           style: TextStyle(
-            fontSize: 30, fontWeight: FontWeight.w800,
-            color: AppColors.textPrimary, letterSpacing: -0.7, height: 1.15,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+            letterSpacing: -0.7,
+            height: 1.15,
           ),
         ),
         const SizedBox(height: 4),
-        Container(width: 36, height: 3,
+        Container(
+          width: 36,
+          height: 3,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
                 colors: [AppColors.gold, AppColors.goldLight]),
@@ -277,15 +276,17 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
   }
 
   Widget _buildDocTypeSelector() {
-    final types = _DocumentType.values;
+    final types = DocumentType.values;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           'SELECT DOCUMENT TYPE',
           style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w600,
-            color: AppColors.textDisabled, letterSpacing: 0.8,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textDisabled,
+            letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 12),
@@ -296,15 +297,17 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
           childAspectRatio: 2.4,
-          children: types.map((t) => _DocTypeChip(
-            type: t,
-            selected: _selectedType == t,
-            onTap: () => setState(() {
-              _selectedType = t;
-              _frontImagePath = null;
-              _backImagePath  = null;
-            }),
-          )).toList(),
+          children: types
+              .map((t) => _DocTypeChip(
+                    type: t,
+                    selected: _selectedType == t,
+                    onTap: () => setState(() {
+                      _selectedType = t;
+                      _frontImagePath = null;
+                      _backImagePath = null;
+                    }),
+                  ))
+              .toList(),
         ),
       ],
     );
@@ -317,8 +320,10 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
         const Text(
           'CAPTURE DOCUMENT',
           style: TextStyle(
-            fontSize: 11, fontWeight: FontWeight.w600,
-            color: AppColors.textDisabled, letterSpacing: 0.8,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textDisabled,
+            letterSpacing: 0.8,
           ),
         ),
         const SizedBox(height: 12),
@@ -421,7 +426,7 @@ class _ImageSourceOption extends StatelessWidget {
 }
 
 class _DocTypeChip extends StatelessWidget {
-  final _DocumentType type;
+  final DocumentType type;
   final bool selected;
   final VoidCallback onTap;
 
@@ -487,9 +492,7 @@ class _CaptureCard extends StatelessWidget {
         duration: const Duration(milliseconds: 300),
         height: 150,
         decoration: BoxDecoration(
-          color: captured
-              ? AppColors.successDim
-              : AppColors.primaryLight,
+          color: captured ? AppColors.successDim : AppColors.primaryLight,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: captured
@@ -500,7 +503,6 @@ class _CaptureCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Show captured image
             if (captured)
               ClipRRect(
                 borderRadius: BorderRadius.circular(13),
@@ -511,8 +513,6 @@ class _CaptureCard extends StatelessWidget {
                   fit: BoxFit.cover,
                 ),
               ),
-
-            // Dashed border effect when idle
             if (!captured)
               Positioned.fill(
                 child: ClipRRect(
@@ -520,8 +520,6 @@ class _CaptureCard extends StatelessWidget {
                   child: CustomPaint(painter: _DashedBorderPainter()),
                 ),
               ),
-
-            // Overlay content
             if (captured)
               Positioned.fill(
                 child: Container(
@@ -538,7 +536,6 @@ class _CaptureCard extends StatelessWidget {
                   ),
                 ),
               ),
-
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -677,15 +674,4 @@ class _DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter old) => false;
-}
-
-enum _DocumentType {
-  nin(AppStrings.docNIN, Icons.credit_card_outlined),
-  passport(AppStrings.docPassport, Icons.book_outlined),
-  drivers(AppStrings.docDrivers, Icons.drive_eta_outlined),
-  voters(AppStrings.docVoters, Icons.how_to_vote_outlined);
-
-  final String label;
-  final IconData icon;
-  const _DocumentType(this.label, this.icon);
 }

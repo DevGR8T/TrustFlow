@@ -9,10 +9,10 @@ class OnboardingProgressBar extends StatelessWidget {
   final int totalSteps;
 
   const OnboardingProgressBar({
-    Key? key,
+    super.key,
     required this.currentStep,
     this.totalSteps = 5,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

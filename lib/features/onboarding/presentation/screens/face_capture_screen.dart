@@ -1,16 +1,17 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:math';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:trust_flow/features/onboarding/domain/repositories/liveness_detector_repository_impl.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
+import '../../domain/entities/liveness_step.dart';
+import '../../data/repositories/liveness_detector_repository_impl.dart';
 import '../bloc/onboarding_bloc.dart';
 import '../bloc/onboarding_event.dart';
 import '../bloc/onboarding_state.dart';
@@ -19,15 +20,6 @@ import '../widgets/error_dialog.dart';
 import '../widgets/loading_overlay.dart';
 import '../widgets/progress_indicator_widget.dart';
 import 'verification_status_screen.dart';
-
-enum LivenessStep {
-  initial,
-  blinkDetection,
-  smileDetection,
-  turnLeft,
-  turnRight,
-  completed,
-}
 
 class FaceCaptureScreen extends StatefulWidget {
   const FaceCaptureScreen({Key? key}) : super(key: key);
@@ -50,6 +42,8 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
     ),
   );
 
+  late LivenessDetectorRepository _livenessRepo;
+
   bool _isDetecting = false;
   bool _isCameraInitialized = false;
   String? _capturedImagePath;
@@ -70,25 +64,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
   int _rightTurnFrames = 0;
   int _leftTurnFrames = 0;
   int _smileFrames = 0;
-  int _blinkOpenFrames = 0;
   static const int _confirmFrames = 5;
 
-  // Blink tracking
-  int _eyesClosedFrames = 0;
-  bool _wasEyesClosed = false;
-
-  static const double EYES_OPEN_THRESHOLD = 0.80;
-static const double EYES_CLOSED_THRESHOLD = 0.20;
-
-
-
-// Add this state tracker (replace the existing blink-related variables)
-int _blinkState = 0; 
-
-
-
-  // Head movement
-  List<double> _headYAngles = [];
+  // Blink state tracker
+  int _blinkState = 0;
 
   String _instructionText = 'Position your face in the frame';
   double _progress = 0.0;
@@ -156,6 +135,9 @@ int _blinkState = 0;
 
       await _cameraController!.initialize();
       if (!mounted) return;
+
+      // Initialize repository
+      _livenessRepo = LivenessDetectorRepositoryImpl();
 
       setState(() => _isCameraInitialized = true);
       _cameraController!.startImageStream(_processCameraImage);
@@ -238,14 +220,6 @@ int _blinkState = 0;
 
     final face = faces.first;
 
-    final faceW = face.boundingBox.width / imageSize.width;
-  final faceH = face.boundingBox.height / imageSize.height;
-  final offX = (face.boundingBox.center.dx - imageSize.width / 2).abs() / imageSize.width;
-  final offY = (face.boundingBox.center.dy - imageSize.height / 2).abs() / imageSize.height;
-  debugPrint('📐 faceW: ${faceW.toStringAsFixed(2)} faceH: ${faceH.toStringAsFixed(2)} offX: ${offX.toStringAsFixed(2)} offY: ${offY.toStringAsFixed(2)}');
-
-  
-
     if (!_isFaceValid(face, imageSize)) {
       setState(() {
         _faceDetected = false;
@@ -286,86 +260,47 @@ int _blinkState = 0;
     }
   }
 
- bool _isFaceValid(Face face, Size imageSize) {
-  final faceWidthRatio = face.boundingBox.width / imageSize.width;
-  final faceHeightRatio = face.boundingBox.height / imageSize.height;
-
-  // LOOSENED - was 0.30
-  if (faceWidthRatio < 0.20 || faceHeightRatio < 0.20) {
-    setState(() => _instructionText = 'Move closer to the camera');
-    return false;
+  bool _isFaceValid(Face face, Size imageSize) {
+    final isValid = _livenessRepo.isFaceValid(face, imageSize);
+    if (!isValid) {
+      setState(() => _instructionText = _livenessRepo.getFaceValidationMessage());
+    }
+    return isValid;
   }
-
-  // LOOSENED - was 0.80
-  if (faceWidthRatio > 0.90 || faceHeightRatio > 0.90) {
-    setState(() => _instructionText = 'Move further from the camera');
-    return false;
-  }
-
-  final offsetX = (face.boundingBox.center.dx - imageSize.width / 2).abs();
-  final offsetY = (face.boundingBox.center.dy - imageSize.height / 2).abs();
-
-  // LOOSENED - was 0.20
-  if (offsetX > imageSize.width * 0.35 || offsetY > imageSize.height * 0.35) {
-    setState(() => _instructionText = 'Center your face in the frame');
-    return false;
-  }
-
-  return true;
-}
 
   void _processInitialStep() {
-  if (_consecutiveFrames >= 5) {
-    setState(() {
-      _currentStep = LivenessStep.blinkDetection;
-      _instructionText = 'Blink your eyes';
-      _progress = 0.2;
-    });
-    debugPrint('✅ Positioning complete → Blink detection');
-  } else {
-    setState(() => _instructionText = 'Hold still... $_consecutiveFrames/5');
+    if (_consecutiveFrames >= 5) {
+      setState(() {
+        _currentStep = LivenessStep.blinkDetection;
+        _instructionText = 'Blink your eyes';
+        _progress = 0.2;
+      });
+      debugPrint('✅ Positioning complete → Blink detection');
+    } else {
+      setState(() => _instructionText = 'Hold still... $_consecutiveFrames/5');
+    }
   }
-}
 
   void _processBlinkDetection(Face face) {
-  final left = face.leftEyeOpenProbability;
-  final right = face.rightEyeOpenProbability;
-  if (left == null || right == null) return;
+    final left = face.leftEyeOpenProbability;
+    final right = face.rightEyeOpenProbability;
+    if (left == null || right == null) return;
 
-  // Use minimum of both eyes (stricter - both eyes must blink)
-  final minEyeOpen = min(left, right);
-  
-  debugPrint('👁 L: ${left.toStringAsFixed(2)} | R: ${right.toStringAsFixed(2)} | min: ${minEyeOpen.toStringAsFixed(2)} | state: $_blinkState');
+    final newState = _livenessRepo.updateBlinkState(left, right, _blinkState);
 
-  switch (_blinkState) {
-    case 0: // Waiting for eyes to be fully open
-      if (minEyeOpen > EYES_OPEN_THRESHOLD) {
-        _blinkState = 1;
-        debugPrint('👁 State 0→1: Eyes confirmed OPEN');
-      }
-      break;
-
-    case 1: // Waiting for eyes to close
-      if (minEyeOpen < EYES_CLOSED_THRESHOLD) {
-        _blinkState = 2;
-        debugPrint('👁 State 1→2: Eyes CLOSED detected');
-      }
-      break;
-
-    case 2: // Waiting for eyes to reopen (blink complete)
-      if (minEyeOpen > EYES_OPEN_THRESHOLD) {
-        setState(() {
-          _blinkDetected = true;
-          _currentStep = LivenessStep.smileDetection;
-          _instructionText = 'Now smile naturally';
-          _progress = 0.4;
-          _blinkState = 0; // Reset for next time
-        });
-        debugPrint('✅ ✅ ✅ BLINK COMPLETE → Smile detection');
-      }
-      break;
+    if (newState == 3) {
+      setState(() {
+        _blinkDetected = true;
+        _currentStep = LivenessStep.smileDetection;
+        _instructionText = 'Now smile naturally';
+        _progress = 0.4;
+        _blinkState = 0;
+      });
+      debugPrint('✅ ✅ ✅ BLINK COMPLETE → Smile detection');
+    } else {
+      _blinkState = newState;
+    }
   }
-}
 
   void _processSmileDetection(Face face) {
     final smile = face.smilingProbability;
@@ -373,31 +308,27 @@ int _blinkState = 0;
 
     debugPrint('😊 Smile probability: $smile | frames: $_smileFrames');
 
-    if (smile > 0.70) {
+    if (_livenessRepo.isSmileDetected(smile, _smileFrames, _confirmFrames)) {
+      setState(() {
+        _smileDetected = true;
+        _currentStep = LivenessStep.turnLeft;
+        _instructionText = 'Turn your head left';
+        _progress = 0.6;
+        _smileFrames = 0;
+      });
+      debugPrint('✅ Smile confirmed → Turn left');
+    } else if (smile > 0.70) {
       _smileFrames++;
-      if (_smileFrames >= _confirmFrames) {
-        setState(() {
-          _smileDetected = true;
-          _currentStep = LivenessStep.turnLeft;
-          _instructionText = 'Turn your head left';
-          _progress = 0.6;
-          _smileFrames = 0;
-        });
-        debugPrint('✅ Smile confirmed → Turn left');
-      }
     } else {
       _smileFrames = 0;
     }
   }
 
   void _processTurnLeft(Face face) {
-  final headY = face.headEulerAngleY ?? 0;
-  // INVERTED: User turns left → camera sees positive angle
-  debugPrint('⬅️ headY: $headY | leftFrames: $_leftTurnFrames');
+    final headY = face.headEulerAngleY;
+    debugPrint('⬅️ headY: $headY | leftFrames: $_leftTurnFrames');
 
-  if (headY > 12) {  // CHANGED from < -12 to > 12
-    _leftTurnFrames++;
-    if (_leftTurnFrames >= _confirmFrames) {
+    if (_livenessRepo.isLeftTurnDetected(headY, _leftTurnFrames, _confirmFrames)) {
       setState(() {
         _leftTurnDetected = true;
         _currentStep = LivenessStep.turnRight;
@@ -406,20 +337,18 @@ int _blinkState = 0;
         _leftTurnFrames = 0;
       });
       debugPrint('✅ Left turn confirmed → Turn right');
+    } else if (headY != null && headY > 12) {
+      _leftTurnFrames++;
+    } else {
+      _leftTurnFrames = 0;
     }
-  } else {
-    _leftTurnFrames = 0;
   }
-}
 
- void _processTurnRight(Face face) {
-  final headY = face.headEulerAngleY ?? 0;
-  debugPrint('➡️ headY: $headY | rightFrames: $_rightTurnFrames');
+  void _processTurnRight(Face face) {
+    final headY = face.headEulerAngleY;
+    debugPrint('➡️ headY: $headY | rightFrames: $_rightTurnFrames');
 
-  if (headY < -12) {  // CHANGED from > 12 to < -12
-    _rightTurnFrames++;
-    debugPrint('✅ Right turn counting: $_rightTurnFrames / $_confirmFrames');
-    if (_rightTurnFrames >= _confirmFrames) {
+    if (_livenessRepo.isRightTurnDetected(headY, _rightTurnFrames, _confirmFrames)) {
       debugPrint('🎯 RIGHT TURN CONFIRMED → completed');
       setState(() {
         _rightTurnDetected = true;
@@ -428,27 +357,19 @@ int _blinkState = 0;
         _progress = 1.0;
         _rightTurnFrames = 0;
       });
+    } else if (headY != null && headY < -12) {
+      _rightTurnFrames++;
+      debugPrint('✅ Right turn counting: $_rightTurnFrames / $_confirmFrames');
+    } else {
+      _rightTurnFrames = 0;
     }
-  } else {
-    _rightTurnFrames = 0;
   }
-}
 
   Future<void> _captureVerificationPhoto() async {
     if (_cameraController == null) return;
 
     try {
-      await _cameraController!.stopImageStream();
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      final image = await _cameraController!.takePicture();
-      final directory = await getApplicationDocumentsDirectory();
-      final imagePath =
-          '${directory.path}/selfie_verified_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      await File(image.path).copy(imagePath);
-
-      debugPrint('✅ Photo captured: $imagePath');
-
+      final imagePath = await _livenessRepo.capturePhoto(_cameraController!);
       if (mounted) {
         setState(() => _capturedImagePath = imagePath);
       }
@@ -468,25 +389,24 @@ int _blinkState = 0;
   }
 
   void _resetLivenessDetection() {
-  setState(() {
-    _hasCaptured = false;
-    _currentStep = LivenessStep.initial;
-    _blinkDetected = false;
-    _smileDetected = false;
-    _leftTurnDetected = false;
-    _rightTurnDetected = false;
-    _consecutiveFrames = 0;
-    _blinkState = 0; // ADD THIS - reset blink state machine
-    _headYAngles.clear();
-    _progress = 0.0;
-    _instructionText = 'Position your face in the frame';
-    _rightTurnFrames = 0;
-    _leftTurnFrames = 0;
-    _smileFrames = 0;
-    _faceDetected = false;
-  });
-  _cameraController?.startImageStream(_processCameraImage);
-}
+    setState(() {
+      _hasCaptured = false;
+      _currentStep = LivenessStep.initial;
+      _blinkDetected = false;
+      _smileDetected = false;
+      _leftTurnDetected = false;
+      _rightTurnDetected = false;
+      _consecutiveFrames = 0;
+      _blinkState = 0;
+      _progress = 0.0;
+      _instructionText = 'Position your face in the frame';
+      _rightTurnFrames = 0;
+      _leftTurnFrames = 0;
+      _smileFrames = 0;
+      _faceDetected = false;
+    });
+    _cameraController?.startImageStream(_processCameraImage);
+  }
 
   void _retake() {
     setState(() => _capturedImagePath = null);
@@ -494,39 +414,39 @@ int _blinkState = 0;
   }
 
   void _onConfirm() {
-  if (_capturedImagePath == null) {
-    debugPrint('❌ No captured image path!');
-    return;
+    if (_capturedImagePath == null) {
+      debugPrint('❌ No captured image path!');
+      return;
+    }
+
+    debugPrint('==========================================');
+    debugPrint('📸 CONFIRM BUTTON PRESSED');
+    debugPrint('  _blinkDetected: $_blinkDetected');
+    debugPrint('  _smileDetected: $_smileDetected');
+    debugPrint('  _leftTurnDetected: $_leftTurnDetected');
+    debugPrint('  _rightTurnDetected: $_rightTurnDetected');
+    debugPrint('  _currentStep: $_currentStep');
+    debugPrint('  All checks: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}');
+    debugPrint('==========================================');
+
+    final livenessData = {
+      'blink_detected': _blinkDetected,
+      'smile_detected': _smileDetected,
+      'head_turn_left': _leftTurnDetected,
+      'head_turn_right': _rightTurnDetected,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+
+    debugPrint('📤 Liveness data being sent: $livenessData');
+
+    context.read<OnboardingBloc>().add(
+          UploadFaceCaptureEvent(
+            imagePath: _capturedImagePath!,
+            livenessVerified: true,
+            livenessData: livenessData,
+          ),
+        );
   }
-  
-  debugPrint('==========================================');
-  debugPrint('📸 CONFIRM BUTTON PRESSED');
-  debugPrint('  _blinkDetected: $_blinkDetected');
-  debugPrint('  _smileDetected: $_smileDetected');
-  debugPrint('  _leftTurnDetected: $_leftTurnDetected');
-  debugPrint('  _rightTurnDetected: $_rightTurnDetected');
-  debugPrint('  _currentStep: $_currentStep');
-  debugPrint('  All checks: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}');
-  debugPrint('==========================================');
-  
-  final livenessData = {
-    'blink_detected': _blinkDetected,
-    'smile_detected': _smileDetected,
-    'head_turn_left': _leftTurnDetected,
-    'head_turn_right': _rightTurnDetected,
-    'timestamp': DateTime.now().toIso8601String(),
-  };
-  
-  debugPrint('📤 Liveness data being sent: $livenessData');
-  
-  context.read<OnboardingBloc>().add(
-    UploadFaceCaptureEvent(
-      imagePath: _capturedImagePath!,
-      livenessVerified: true,
-      livenessData: livenessData,
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -741,146 +661,149 @@ int _blinkState = 0;
     );
   }
 
- Widget _buildPreviewScreen() {
-  return Stack(
-    children: [
-      SizedBox.expand(
-          child: Image.file(File(_capturedImagePath!), fit: BoxFit.cover)),
-      Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black.withOpacity(0.5),
-              Colors.transparent,
-              Colors.transparent,
-              Colors.black.withOpacity(0.8),
-            ],
-          ),
-        ),
-      ),
-      
-      // DEBUG OVERLAY - Shows actual flag states
-      Positioned(
-        top: 60,
-        left: 16,
-        right: 16,
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.95),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.yellow, width: 2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Verification Progress', 
-                style: TextStyle(color: Colors.yellow, fontWeight: FontWeight.bold, fontSize: 12)),
-              const SizedBox(height: 4),
-              _buildDebugRow('Blink', _blinkDetected),
-              _buildDebugRow('Smile', _smileDetected),
-              _buildDebugRow('Left Turn', _leftTurnDetected),
-              _buildDebugRow('Right Turn', _rightTurnDetected),
-              const Divider(color: Colors.white24, height: 8),
-              Text('All Pass: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}',
-                style: TextStyle(
-                  color: (_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected) 
-                    ? Colors.green : Colors.red, 
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                )),
-            ],
-          ),
-        ),
-      ),
-
-      
-      
-      SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-              child: Row(
-                children: const [
-                  StepCounterBadge(currentStep: 4, totalSteps: 5)
-                ],
-              ),
-            ),
-            const Spacer(),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: const [
-                  Icon(Icons.verified, color: Colors.white, size: 32),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Verification Passed!\nYour identity has been confirmed.',
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-              child: Column(
-                children: [
-                  PrimaryButton(
-                      label: AppStrings.faceConfirm, onPressed: _onConfirm),
-                  const SizedBox(height: 12),
-                  SecondaryButton(
-                    label: AppStrings.faceRetake,
-                    onPressed: _retake,
-                    leadingIcon: Icons.refresh_rounded,
-                    isDark: true,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-// Add this helper widget
-Widget _buildDebugRow(String label, bool value) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 2),
-    child: Row(
+  Widget _buildPreviewScreen() {
+    return Stack(
       children: [
-        Icon(
-          value ? Icons.check_circle : Icons.cancel,
-          color: value ? Colors.green : Colors.red,
-          size: 14,
+        SizedBox.expand(
+            child: Image.file(File(_capturedImagePath!), fit: BoxFit.cover)),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withOpacity(0.5),
+                Colors.transparent,
+                Colors.transparent,
+                Colors.black.withOpacity(0.8),
+              ],
+            ),
+          ),
         ),
-        const SizedBox(width: 6),
-        Text(
-          '$label: $value',
-          style: TextStyle(
-            color: value ? Colors.green : Colors.red,
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+        // DEBUG OVERLAY
+        Positioned(
+          top: 60,
+          left: 16,
+          right: 16,
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.95),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.yellow, width: 2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Verification Progress',
+                    style: TextStyle(
+                        color: Colors.yellow,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12)),
+                const SizedBox(height: 4),
+                _buildDebugRow('Blink', _blinkDetected),
+                _buildDebugRow('Smile', _smileDetected),
+                _buildDebugRow('Left Turn', _leftTurnDetected),
+                _buildDebugRow('Right Turn', _rightTurnDetected),
+                const Divider(color: Colors.white24, height: 8),
+                Text(
+                    'All Pass: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}',
+                    style: TextStyle(
+                      color: (_blinkDetected &&
+                              _smileDetected &&
+                              _leftTurnDetected &&
+                              _rightTurnDetected)
+                          ? Colors.green
+                          : Colors.red,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    )),
+              ],
+            ),
+          ),
+        ),
+        SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Row(
+                  children: const [
+                    StepCounterBadge(currentStep: 4, totalSteps: 5)
+                  ],
+                ),
+              ),
+              const Spacer(),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.95),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.verified, color: Colors.white, size: 32),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Verification Passed!\nYour identity has been confirmed.',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+                child: Column(
+                  children: [
+                    PrimaryButton(
+                        label: AppStrings.faceConfirm, onPressed: _onConfirm),
+                    const SizedBox(height: 12),
+                    SecondaryButton(
+                      label: AppStrings.faceRetake,
+                      onPressed: _retake,
+                      leadingIcon: Icons.refresh_rounded,
+                      isDark: true,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ],
-    ),
-  );
-}
+    );
+  }
+
+  Widget _buildDebugRow(String label, bool value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        children: [
+          Icon(
+            value ? Icons.check_circle : Icons.cancel,
+            color: value ? Colors.green : Colors.red,
+            size: 14,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$label: $value',
+            style: TextStyle(
+              color: value ? Colors.green : Colors.red,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _LivenessCheckItem extends StatelessWidget {
@@ -905,8 +828,7 @@ class _LivenessCheckItem extends StatelessWidget {
           style: TextStyle(
             fontSize: 10,
             color: completed ? AppColors.success : Colors.white60,
-            fontWeight:
-                completed ? FontWeight.w600 : FontWeight.w500,
+            fontWeight: completed ? FontWeight.w600 : FontWeight.w500,
           ),
         ),
       ],
