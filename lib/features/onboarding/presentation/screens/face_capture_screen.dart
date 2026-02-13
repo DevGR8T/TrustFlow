@@ -141,9 +141,9 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
 
       setState(() => _isCameraInitialized = true);
       _cameraController!.startImageStream(_processCameraImage);
-      debugPrint('📷 Camera initialized - Starting liveness detection');
+     
     } catch (e) {
-      debugPrint('❌ Camera error: $e');
+      
       if (mounted) {
         ErrorDialog.show(
           context,
@@ -198,7 +198,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         _processLivenessDetection(faces, imageSize);
       }
     } catch (e) {
-      debugPrint('❌ Detection error: $e');
+      
     } finally {
       _isDetecting = false;
     }
@@ -232,7 +232,6 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
     if (!_faceDetected) setState(() => _faceDetected = true);
     _consecutiveFrames++;
 
-    debugPrint('✅ Step: $_currentStep | Frames: $_consecutiveFrames');
 
     switch (_currentStep) {
       case LivenessStep.initial:
@@ -253,7 +252,6 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
       case LivenessStep.completed:
         if (!_hasCaptured) {
           _hasCaptured = true;
-          debugPrint('📸 AUTO CAPTURE TRIGGERED');
           _captureVerificationPhoto();
         }
         break;
@@ -275,7 +273,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         _instructionText = 'Blink your eyes';
         _progress = 0.2;
       });
-      debugPrint('✅ Positioning complete → Blink detection');
+     
     } else {
       setState(() => _instructionText = 'Hold still... $_consecutiveFrames/5');
     }
@@ -296,7 +294,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         _progress = 0.4;
         _blinkState = 0;
       });
-      debugPrint('✅ ✅ ✅ BLINK COMPLETE → Smile detection');
+     
     } else {
       _blinkState = newState;
     }
@@ -306,7 +304,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
     final smile = face.smilingProbability;
     if (smile == null) return;
 
-    debugPrint('😊 Smile probability: $smile | frames: $_smileFrames');
+   
 
     if (_livenessRepo.isSmileDetected(smile, _smileFrames, _confirmFrames)) {
       setState(() {
@@ -316,7 +314,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         _progress = 0.6;
         _smileFrames = 0;
       });
-      debugPrint('✅ Smile confirmed → Turn left');
+      
     } else if (smile > 0.70) {
       _smileFrames++;
     } else {
@@ -326,7 +324,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
 
   void _processTurnLeft(Face face) {
     final headY = face.headEulerAngleY;
-    debugPrint('⬅️ headY: $headY | leftFrames: $_leftTurnFrames');
+   
 
     if (_livenessRepo.isLeftTurnDetected(headY, _leftTurnFrames, _confirmFrames)) {
       setState(() {
@@ -336,7 +334,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         _progress = 0.8;
         _leftTurnFrames = 0;
       });
-      debugPrint('✅ Left turn confirmed → Turn right');
+     
     } else if (headY != null && headY > 12) {
       _leftTurnFrames++;
     } else {
@@ -346,10 +344,10 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
 
   void _processTurnRight(Face face) {
     final headY = face.headEulerAngleY;
-    debugPrint('➡️ headY: $headY | rightFrames: $_rightTurnFrames');
+    
 
     if (_livenessRepo.isRightTurnDetected(headY, _rightTurnFrames, _confirmFrames)) {
-      debugPrint('🎯 RIGHT TURN CONFIRMED → completed');
+     
       setState(() {
         _rightTurnDetected = true;
         _currentStep = LivenessStep.completed;
@@ -359,7 +357,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
       });
     } else if (headY != null && headY < -12) {
       _rightTurnFrames++;
-      debugPrint('✅ Right turn counting: $_rightTurnFrames / $_confirmFrames');
+     
     } else {
       _rightTurnFrames = 0;
     }
@@ -374,7 +372,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
         setState(() => _capturedImagePath = imagePath);
       }
     } catch (e) {
-      debugPrint('❌ Capture error: $e');
+     
       _hasCaptured = false;
       if (mounted) {
         ErrorDialog.show(
@@ -415,19 +413,11 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
 
   void _onConfirm() {
     if (_capturedImagePath == null) {
-      debugPrint('❌ No captured image path!');
+      
       return;
     }
 
-    debugPrint('==========================================');
-    debugPrint('📸 CONFIRM BUTTON PRESSED');
-    debugPrint('  _blinkDetected: $_blinkDetected');
-    debugPrint('  _smileDetected: $_smileDetected');
-    debugPrint('  _leftTurnDetected: $_leftTurnDetected');
-    debugPrint('  _rightTurnDetected: $_rightTurnDetected');
-    debugPrint('  _currentStep: $_currentStep');
-    debugPrint('  All checks: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}');
-    debugPrint('==========================================');
+
 
     final livenessData = {
       'blink_detected': _blinkDetected,
@@ -437,7 +427,6 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
       'timestamp': DateTime.now().toIso8601String(),
     };
 
-    debugPrint('📤 Liveness data being sent: $livenessData');
 
     context.read<OnboardingBloc>().add(
           UploadFaceCaptureEvent(

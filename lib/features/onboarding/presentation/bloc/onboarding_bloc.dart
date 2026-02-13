@@ -93,10 +93,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
   UploadFaceCaptureEvent event,
   Emitter<OnboardingState> emit,
 ) async {
-  debugPrint('📤 [BLOC] imagePath: ${event.imagePath}');
-  debugPrint('📤 [BLOC] livenessVerified: ${event.livenessVerified}');
-  debugPrint('📤 [BLOC] livenessData: ${event.livenessData}');
-
+  
   emit(const OnboardingLoading(message: 'Analysing biometrics…'));
 
   final result = await uploadFaceCapture(
@@ -109,11 +106,11 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
 
   result.fold(
     (failure) {
-      debugPrint('❌ [BLOC] FAILURE: ${failure.message} | code: ${failure.code}');
+      
       emit(OnboardingError(message: failure.message, code: failure.code));
     },
     (_) {
-      debugPrint('✅ [BLOC] FaceCaptureUploaded emitted');
+      
       emit(const FaceCaptureUploaded());
     },
   );

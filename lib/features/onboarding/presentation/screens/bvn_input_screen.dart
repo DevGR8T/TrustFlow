@@ -323,7 +323,7 @@ class _BvnInputScreenState extends State<BvnInputScreen>
               Icon(Icons.check_circle_outline_rounded,
                   size: 13, color: AppColors.success),
               SizedBox(width: 5),
-              Text('Valid BVN format',
+              Text('Valid BVN number',
                   style: TextStyle(fontSize: 11.5, color: AppColors.success)),
             ],
           ),

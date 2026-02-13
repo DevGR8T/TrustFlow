@@ -71,8 +71,7 @@ class UploadFaceCapture implements UseCase<void, UploadFaceCaptureParams> {
 
   @override
   Future<Either<Failure, void>> call(UploadFaceCaptureParams params) {
-    debugPrint('🎯 USE CASE - livenessVerified: ${params.livenessVerified}');
-    debugPrint('🎯 USE CASE - livenessData: ${params.livenessData}');
+   
     
     return repository.uploadFaceCapture(
       params.imagePath,

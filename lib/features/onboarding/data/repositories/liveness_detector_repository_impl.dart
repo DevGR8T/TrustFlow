@@ -53,19 +53,19 @@ class LivenessDetectorRepositoryImpl implements LivenessDetectorRepository {
     switch (currentState) {
       case 0:
         if (minEye > _eyesOpenThreshold) {
-          debugPrint('👁 State 0→1: Eyes confirmed OPEN');
+          
           return 1;
         }
         return 0;
       case 1:
         if (minEye < _eyesClosedThreshold) {
-          debugPrint('👁 State 1→2: Eyes CLOSED detected');
+          
           return 2;
         }
         return 1;
       case 2:
         if (minEye > _eyesOpenThreshold) {
-          debugPrint('✅ BLINK COMPLETE');
+         
           return 3;
         }
         return 2;
@@ -99,7 +99,7 @@ class LivenessDetectorRepositoryImpl implements LivenessDetectorRepository {
     final imagePath = '${directory.path}/selfie_verified_${DateTime.now().millisecondsSinceEpoch}.jpg';
     await File(image.path).copy(imagePath);
 
-    debugPrint('✅ Photo captured: $imagePath');
+
     return imagePath;
   }
 }

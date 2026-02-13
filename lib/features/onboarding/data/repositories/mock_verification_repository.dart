@@ -105,7 +105,6 @@ Future<Either<Failure, void>> uploadFaceCapture(
 }) async {
   await Future.delayed(responseDelay);
 
-  print('📸 [MOCK] Face capture - Liveness: $livenessVerified');
 
   // REQUIRE liveness verification
   if (!livenessVerified) {
@@ -117,11 +116,7 @@ Future<Either<Failure, void>> uploadFaceCapture(
 
   // Validate all liveness checks passed
   if (livenessData != null) {
-    print('✅ [MOCK] Liveness data:');
-    print('  Blink: ${livenessData['blink_detected']}');
-    print('  Smile: ${livenessData['smile_detected']}');
-    print('  Left turn: ${livenessData['head_turn_left']}');
-    print('  Right turn: ${livenessData['head_turn_right']}');
+   
     
     final allPassed = livenessData['blink_detected'] == true &&
                       livenessData['smile_detected'] == true &&
@@ -157,7 +152,7 @@ Future<Either<Failure, void>> uploadFaceCapture(
     ));
   }
 
-  print('✅ [MOCK] Face verification successful');
+  
   return const Right(null);
 }
 
