@@ -65,32 +65,45 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
   }
 
   Future<void> _captureImage(bool isFront) async {
-    try {
-      final source = await _showImageSourceDialog();
-      if (source == null) return;
+  try {
+    print('🎯 Starting image capture...');
+    
+    final source = await _showImageSourceDialog();
+    if (source == null) {
+      print('❌ User cancelled source selection');
+      return;
+    }
 
-      final imagePath = await _documentRepo.captureDocument(source);
+    print('📷 Selected source: $source');
+    
+    final imagePath = await _documentRepo.captureDocument(source);
 
-      if (imagePath != null) {
-        setState(() {
-          if (isFront) {
-            _frontImagePath = imagePath;
-          } else {
-            _backImagePath = imagePath;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ErrorDialog.show(
-          context,
-          title: 'Camera Error',
-          message: 'Failed to capture image. Please try again.',
-          primaryActionLabel: 'OK',
-        );
-      }
+    print('📸 Captured image path: $imagePath');
+
+    if (imagePath != null) {
+      setState(() {
+        if (isFront) {
+          _frontImagePath = imagePath;
+        } else {
+          _backImagePath = imagePath;
+        }
+      });
+      print('✅ Image saved successfully');
+    } else {
+      print('⚠️ No image path returned');
+    }
+  } catch (e) {
+    print('💥 Error capturing image: $e');
+    if (mounted) {
+      ErrorDialog.show(
+        context,
+        title: 'Camera Error',
+        message: 'Failed to capture image: $e',
+        primaryActionLabel: 'OK',
+      );
     }
   }
+}
 
   Future<ImageSource?> _showImageSourceDialog() async {
     return showModalBottomSheet<ImageSource>(

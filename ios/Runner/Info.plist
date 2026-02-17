@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Camera and Photo Library Permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Trust Flow needs camera access to capture your face for verification</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Trust Flow needs microphone access to record videos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Trust Flow needs access to your photo library</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Trust Flow needs access to save photos to your library</string>
+	
 </dict>
 </plist>

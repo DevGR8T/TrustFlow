@@ -87,34 +87,58 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final controller = _cameraController;
-    if (controller == null || !controller.value.isInitialized) return;
-    if (state == AppLifecycleState.inactive) {
-      controller.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _requestPermissionsAndInitialize();
-    }
-  }
-
-  Future<void> _requestPermissionsAndInitialize() async {
-    final status = await Permission.camera.request();
-    if (status.isGranted) {
-      _initializeCamera();
-    } else {
-      setState(() => _permissionDenied = true);
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  print('📱 App lifecycle state: $state');
+  
+  final controller = _cameraController;
+  
+  if (state == AppLifecycleState.inactive) {
+    print('⏸️ App going inactive');
+    controller?.stopImageStream();
+  } else if (state == AppLifecycleState.paused) {
+    print('⏸️ App paused');
+    controller?.dispose();
+    setState(() {
+      _cameraController = null;
+      _isCameraInitialized = false;
+    });
+  } else if (state == AppLifecycleState.resumed) {
+    print('▶️ App resumed');
+    // Check permission and reinitialize
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
-        ErrorDialog.show(
-          context,
-          title: 'Camera Permission Required',
-          message: 'Please grant camera permission to complete verification.',
-          primaryActionLabel: 'Open Settings',
-          onPrimaryAction: () => openAppSettings(),
-        );
+        _requestPermissionsAndInitialize();
       }
-    }
+    });
   }
+}
+
+ Future<void> _requestPermissionsAndInitialize() async {
+  if (_isCameraInitialized && _cameraController != null) {
+    return;
+  }
+  
+  final status = await Permission.camera.status;
+  
+  if (status.isGranted) {
+    await _initializeCamera();
+    return;
+  }
+  
+  if (status.isPermanentlyDenied) {
+    setState(() => _permissionDenied = true);
+    return;
+  }
+  
+  final result = await Permission.camera.request();
+  
+  if (result.isGranted) {
+    await _initializeCamera();
+  } else {
+    setState(() => _permissionDenied = true);
+  }
+}
 
   Future<void> _initializeCamera() async {
     try {
