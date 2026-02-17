@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
@@ -220,8 +223,11 @@ class _ConsentScreenState extends State<ConsentScreen>
           PrimaryButton(
             label: AppStrings.consentAgree,
             onPressed: _canProceed
-                ? () => Navigator.push(context,
-                    fadeRoute(const PersonalInfoScreen()))
+                ? () {
+                  context.read<OnboardingBloc>().add( SaveConsentEvent()); 
+                  Navigator.push(context, fadeRoute(const PersonalInfoScreen()));
+                }
+
                 : null,
           ),
           const SizedBox(height: 12),

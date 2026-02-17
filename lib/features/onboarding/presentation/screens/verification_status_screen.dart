@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:trust_flow/features/onboarding/presentation/screens/welcome_screen.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
@@ -58,15 +59,34 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
 
     _enterController.forward();
 
-    // Simulate verification completion after 3s (replace with BLoC listener)
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        setState(() => _status = _VerificationStatus.success);
-        _checkController.forward();
-        _pulseController.stop();
-      }
+     // Trigger the upload once screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkCurrentState();
     });
   }
+
+  void _checkCurrentState() {
+    final state = context.read<OnboardingBloc>().state;
+    if (state is FaceCaptureUploaded) {
+      // Already uploaded, show success
+      _onSuccess();
+    }
+    // Otherwise BlocListener will handle it
+  }
+
+  void _onSuccess() {
+    if (!mounted) return;
+    setState(() => _status = _VerificationStatus.success);
+    _checkController.forward();
+    _pulseController.stop();
+  }
+
+  void _onFailure() {
+    if (!mounted) return;
+    setState(() => _status = _VerificationStatus.failed);
+    _pulseController.stop();
+  }
+  
 
   @override
   void dispose() {
@@ -78,9 +98,17 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      child: Scaffold(
+    return BlocListener<OnboardingBloc, OnboardingState>(
+      listener: (context, state) {
+        if (state is FaceCaptureUploaded) {
+          _onSuccess();
+        } else if (state is OnboardingError) {
+          _onFailure();
+        }
+      },
+      child: PopScope(
+        canPop: false,
+        child: Scaffold(
         backgroundColor: AppColors.primary,
         body: Stack(
           children: [
@@ -111,7 +139,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildTopBar() {
@@ -402,6 +430,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
               : AppStrings.statusRetry,
           onPressed: () {
             if (_status == _VerificationStatus.success) {
+              context.read<OnboardingBloc>().add( ResetOnboardingEvent());
               // Navigate to welcome screen 
                Navigator.pushAndRemoveUntil(
               context,

@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
+import 'package:hydrated_bloc/hydrated_bloc.dart';
+import 'package:path_provider/path_provider.dart';
 import 'core/constants/theme.dart';
 import 'features/onboarding/data/repositories/mock_verification_repository.dart';
 import 'features/onboarding/domain/usecases/verify_bvn.dart';
-import 'features/onboarding/domain/usecases/upload_document.dart';
-import 'features/onboarding/domain/usecases/upload_face_capture.dart';
-import 'features/onboarding/domain/usecases/save_progress.dart';
-import 'features/onboarding/domain/usecases/get_saved_progress.dart';
 import 'features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'features/onboarding/presentation/screens/welcome_screen.dart';
-
-void main() {
+  
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize HydratedBloc storage
+  final storage = await HydratedStorage.build(
+  storageDirectory: await getApplicationDocumentsDirectory(),
+);
+  HydratedBloc.storage = storage;
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -35,7 +38,7 @@ class TrustFlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ── Dependency wiring (replace with get_it / injectable in production) ──
+    
     final repo = MockVerificationRepository();
 
     return MultiBlocProvider(

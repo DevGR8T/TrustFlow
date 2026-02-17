@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_event.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_state.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
@@ -109,16 +113,28 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     }
   }
 
-  void _onContinue() {
-    setState(() => _formDirty = true);
-    if (_formKey.currentState!.validate()) {
-      Navigator.push(context, fadeRoute(const BvnInputScreen()));
-    }
+void _onContinue() {
+  setState(() => _formDirty = true);
+  if (_formKey.currentState!.validate()) {
+    context.read<OnboardingBloc>().add(SavePersonalInfoEvent(
+      fullName: '${_firstNameCtrl.text.trim()} ${_lastNameCtrl.text.trim()}',
+      dateOfBirth: _dobCtrl.text,
+      phoneNumber: _phoneCtrl.text,
+      email: _emailCtrl.text,
+    ));
+    // navigation now handled by BlocListener
   }
+}
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+     return BlocListener<OnboardingBloc, OnboardingState>(
+    listener: (context, state) {
+      if (state is PersonalInfoSaved) {
+        Navigator.push(context, fadeRoute(const BvnInputScreen()));
+      }
+    },
+    child:  Scaffold(
       backgroundColor: AppColors.primary,
       body: Stack(
         children: [
@@ -159,7 +175,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildAppBar(BuildContext context) {

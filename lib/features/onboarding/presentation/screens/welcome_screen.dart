@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_state.dart';
+import 'package:trust_flow/features/onboarding/presentation/screens/document_capture_screen.dart';
+import 'package:trust_flow/features/onboarding/presentation/screens/face_capture_screen.dart';
+import 'package:trust_flow/features/onboarding/presentation/screens/personal_info_screen.dart';
+import 'package:trust_flow/features/onboarding/presentation/screens/verification_status_screen.dart';
+import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
 import 'consent_screen.dart';
@@ -72,7 +80,28 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
     _fadeController.forward();
     _slideController.forward();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+    _resumeFromSavedState();
+  });
   }
+
+  void _resumeFromSavedState() {
+  final state = context.read<OnboardingBloc>().state;
+  print('🔵 Restored state on launch: $state');
+
+  if (state is ConsentSaved) {
+    Navigator.push(context, fadeRoute(const PersonalInfoScreen()));
+  } else if (state is PersonalInfoSaved) {
+    Navigator.push(context, fadeRoute(const PersonalInfoScreen()));
+  } else if (state is BvnVerified) {
+    Navigator.push(context, fadeRoute(const DocumentCaptureScreen()));
+  } else if (state is DocumentUploaded) {
+    Navigator.push(context, fadeRoute(const FaceCaptureScreen()));
+  } else if (state is FaceCaptureUploaded) {
+    Navigator.push(context, fadeRoute(const VerificationStatusScreen()));
+  }
+}
 
   @override
   void dispose() {
@@ -84,6 +113,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
+      print('🔵 Restored state on launch: ${context.read<OnboardingBloc>().state}'); 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
       body: Stack(
