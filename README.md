@@ -51,7 +51,7 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 State Management: flutter_bloc & hydrated_bloc (for state persistence).
 Architecture: Clean Architecture (Domain, Data, Presentation layers).
-Local Storage: hive / shared_preferences (via HydratedBloc).
+Local Storage: shared_preferences (via HydratedBloc).
 Image Handling: image_picker & flutter_image_compress. 
 
 
