@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/domain/repositories/liveness_detector_repository_impl.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import '../../../../core/constants/colors.dart';
@@ -29,7 +30,7 @@ class FaceCaptureScreen extends StatefulWidget {
 }
 
 class _FaceCaptureScreenState extends State<FaceCaptureScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SecureScreenMixin {
   CameraController? _cameraController;
   final FaceDetector _faceDetector = FaceDetector(
     options: FaceDetectorOptions(

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/colors.dart';
@@ -27,7 +28,7 @@ class DocumentCaptureScreen extends StatefulWidget {
 }
 
 class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin,  WidgetsBindingObserver, SecureScreenMixin {
   late AnimationController _enterController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;

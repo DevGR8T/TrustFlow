@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_state.dart';
@@ -23,7 +24,7 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin,  WidgetsBindingObserver, SecureScreenMixin {
   late AnimationController _enterController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
@@ -81,6 +82,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen>
     for (final ctrl in [_firstNameCtrl, _lastNameCtrl, _dobCtrl, _phoneCtrl, _emailCtrl]) {
       ctrl.dispose();
     }
+     // Remove observer before super.dispose()
+  WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 

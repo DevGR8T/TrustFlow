@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -18,14 +19,14 @@ import 'document_capture_screen.dart';
 
 
 class BvnInputScreen extends StatefulWidget {
-  const BvnInputScreen({Key? key}) : super(key: key);
+  const BvnInputScreen({super.key});
 
   @override
   State<BvnInputScreen> createState() => _BvnInputScreenState();
 }
 
 class _BvnInputScreenState extends State<BvnInputScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver, SecureScreenMixin {
   late AnimationController _enterController;
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
