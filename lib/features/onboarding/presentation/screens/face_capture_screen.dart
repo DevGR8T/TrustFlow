@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:trust_flow/core/utils/image_compressor.dart';
 import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/domain/repositories/liveness_detector_repository_impl.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
@@ -389,27 +390,35 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
   }
 
   Future<void> _captureVerificationPhoto() async {
-    if (_cameraController == null) return;
+  if (_cameraController == null) return;
 
-    try {
-      final imagePath = await _livenessRepo.capturePhoto(_cameraController!);
-      if (mounted) {
-        setState(() => _capturedImagePath = imagePath);
-      }
-    } catch (e) {
-     
-      _hasCaptured = false;
-      if (mounted) {
-        ErrorDialog.show(
-          context,
-          title: 'Capture Error',
-          message: 'Failed to capture photo. Please try again.',
-          primaryActionLabel: 'Retry',
-          onPrimaryAction: () => _resetLivenessDetection(),
-        );
-      }
+  try {
+    final imagePath = await _livenessRepo.capturePhoto(_cameraController!);
+    
+    // Compress before upload
+    final compressed = await ImageCompressor.compress(
+      imagePath,
+      quality: 75,       // slightly higher for biometrics accuracy
+      maxWidth: 800,
+      maxHeight: 800,
+    );
+
+    if (mounted) {
+      setState(() => _capturedImagePath = compressed);
+    }
+  } catch (e) {
+    _hasCaptured = false;
+    if (mounted) {
+      ErrorDialog.show(
+        context,
+        title: 'Capture Error',
+        message: 'Failed to capture photo. Please try again.',
+        primaryActionLabel: 'Retry',
+        onPrimaryAction: () => _resetLivenessDetection(),
+      );
     }
   }
+}
 
   void _resetLivenessDetection() {
     setState(() {

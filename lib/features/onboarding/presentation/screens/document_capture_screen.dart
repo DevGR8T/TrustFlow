@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:trust_flow/core/utils/image_compressor.dart';
 import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/subtle_grid_background.dart';
@@ -21,7 +22,7 @@ import 'face_capture_screen.dart';
 import 'consent_screen.dart' show _NavBackButton, _SubtleGridBackground, _fadeRoute;
 
 class DocumentCaptureScreen extends StatefulWidget {
-  const DocumentCaptureScreen({Key? key}) : super(key: key);
+  const DocumentCaptureScreen({super.key});
 
   @override
   State<DocumentCaptureScreen> createState() => _DocumentCaptureScreenState();
@@ -67,34 +68,28 @@ class _DocumentCaptureScreenState extends State<DocumentCaptureScreen>
 
   Future<void> _captureImage(bool isFront) async {
   try {
-    print('🎯 Starting image capture...');
-    
     final source = await _showImageSourceDialog();
-    if (source == null) {
-      print('❌ User cancelled source selection');
-      return;
-    }
+    if (source == null) return;
 
-    print('📷 Selected source: $source');
-    
     final imagePath = await _documentRepo.captureDocument(source);
+    if (imagePath == null) return;
 
-    print('📸 Captured image path: $imagePath');
+    // Compress before upload
+    final compressed = await ImageCompressor.compress(
+      imagePath,
+      quality: 70,
+      maxWidth: 1024,
+      maxHeight: 1024,
+    );
 
-    if (imagePath != null) {
-      setState(() {
-        if (isFront) {
-          _frontImagePath = imagePath;
-        } else {
-          _backImagePath = imagePath;
-        }
-      });
-      print('✅ Image saved successfully');
-    } else {
-      print('⚠️ No image path returned');
-    }
+    setState(() {
+      if (isFront) {
+        _frontImagePath = compressed;
+      } else {
+        _backImagePath = compressed;
+      }
+    });
   } catch (e) {
-    print('💥 Error capturing image: $e');
     if (mounted) {
       ErrorDialog.show(
         context,
