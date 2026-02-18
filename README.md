@@ -1,7 +1,24 @@
-# TRUSTFLOW – FINTECH ONBOARDING & KYC APP
+# TRUSTFLOW – Resilient Fintech Onboarding
 
 TrustFlow is a mobile fintech onboarding and KYC application built with Flutter for Android and iOS.  
 It reflects how real Nigerian fintech onboarding systems are built — focusing on reliability, regulated flows, and user trust.
+
+In emerging markets, users often drop off during onboarding because the app restarts and loses their data, or image uploads take too long. TrustFlow solves this using State Persistence and Client-Side Compression.
+
+
+
+# The Business Problems I solved
+
+1. Data Loss & User Frustration
+Problem: In standard apps, if a user minimizes the app to copy a BVN or their phone kills the background process, the form resets. This causes users to quit.
+My Solution (Hydrated State): I implemented HydratedBloc. The app automatically saves the user's progress to local storage. If the app is killed and reopened, the user returns to the exact same step with their data intact.
+2. Slow Uploads & Bandwidth
+Problem: Uploading a 5MB raw camera photo on a 3G network causes timeouts and high data costs.
+My Solution (Compression): I wrote a service that compresses ID cards and Selfies on the device (client-side) to under 300KB before the upload starts. This makes the app faster and cheaper for the user.
+3. Data Privacy & Security
+Problem: Banking apps often expose sensitive data (BVN/Balance) when the user switches between apps (Multitasking view).
+My Solution (Privacy Shield): I implemented a lifecycle listener that automatically blurs the app screen when it goes into the background, protecting user data from bystanders.
+
 
 
 ## 📱 DOWNLOAD APP
@@ -32,13 +49,10 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 ## 🧱 TECH STACK
 
-- Flutter  
-- Dart  
-- BLoC (state management)  
-- Clean Architecture  
-- REST API (mocked)  
-- Local storage  
-- Camera & device permissions  
+State Management: flutter_bloc & hydrated_bloc (for state persistence).
+Architecture: Clean Architecture (Domain, Data, Presentation layers).
+Local Storage: hive / shared_preferences (via HydratedBloc).
+Image Handling: image_picker & flutter_image_compress. 
 
 
 
