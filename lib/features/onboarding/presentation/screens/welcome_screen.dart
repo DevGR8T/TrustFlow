@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/market_rates/presentation/widgets/exchange_rate_banner.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_state.dart';
 import 'package:trust_flow/features/onboarding/presentation/screens/document_capture_screen.dart';
@@ -184,73 +185,77 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   // ─────────────────────────────────────────────────────────────
   // TOP BAR
   // ─────────────────────────────────────────────────────────────
-  Widget _buildTopBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFF5E27A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(6),
+Widget _buildTopBar() {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      // App name (left)
+      Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFD4AF37), Color(0xFFF5E27A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: const Icon(
-                Icons.shield_rounded,
-                color: Color(0xFF0A0E1A),
-                size: 16,
-              ),
+              borderRadius: BorderRadius.circular(6),
             ),
-            const SizedBox(width: 8),
-            const Text(
-             AppStrings.appName,
-              style: TextStyle(
-                fontFamily: 'Courier',
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFFD4AF37),
-                letterSpacing: 3.5,
-              ),
+            child: const Icon(Icons.shield_rounded, color: Color(0xFF0A0E1A), size: 16),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            AppStrings.appName,
+            style: TextStyle(
+              fontFamily: 'Courier',
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFD4AF37),
+              letterSpacing: 3.5,
             ),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF1E2D4A), width: 1),
-            borderRadius: BorderRadius.circular(20),
           ),
-          child: Row(
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF00D68F),
-                  shape: BoxShape.circle,
+        ],
+      ),
+
+      // Right side: rate + secure session stacked vertically
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          const ExchangeRateBanner(),
+          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF1E2D4A), width: 1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00D68F),
+                    shape: BoxShape.circle,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                'Secure Session',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF7A8BAD),
-                  letterSpacing: 0.3,
+                const SizedBox(width: 6),
+                const Text(
+                  'Secure Session',
+                  style: TextStyle(fontSize: 11, color: Color(0xFF7A8BAD)),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      ),
+    ],
+  );
+}
 
   // ─────────────────────────────────────────────────────────────
   // HERO MARK
