@@ -18,6 +18,9 @@ My Solution (Compression): I wrote a service that compresses ID cards and Selfie
 3. Data Privacy & Security
 Problem: Banking apps often expose sensitive data (BVN/Balance) when the user switches between apps (Multitasking view).
 My Solution (Privacy Shield): I implemented a lifecycle listener that automatically blurs the app screen when it goes into the background, protecting user data from bystanders.
+4. Lack of Real-Time Financial Context
+Problem: Users onboarding into fintech apps often don’t see real-time financial context (like exchange rates), which reduces trust and perceived usefulness.
+My Solution (Live Market Data): I integrated a real REST API using Dio to fetch live USD/NGN exchange rates. The feature is built using Clean Architecture with a RemoteDataSource, Repository, and UseCase, including proper error handling for network failures and offline states.
 
 
 
@@ -51,6 +54,8 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 State Management: flutter_bloc & hydrated_bloc (for state persistence).
 Architecture: Clean Architecture (Domain, Data, Presentation layers).
+Dependency Injection: get_it (Service Locator pattern) 
+Networking: dio (for REST API integration)
 Local Storage: shared_preferences (via HydratedBloc).
 Image Handling: image_picker & flutter_image_compress. 
 
@@ -83,8 +88,10 @@ Image Handling: image_picker & flutter_image_compress.
 - Save & resume onboarding progress  
 - Verification status tracking (pending, approved, failed)  
 - BLoC-based state management  
+- Dependency Injection using GetIt for scalable architecture
 - Clean Architecture structure  
 - Mocked REST API integration  
+- Live USD → NGN exchange rate (real REST API integration)
 
 
 ## 📂 PROJECT STRUCTURE
