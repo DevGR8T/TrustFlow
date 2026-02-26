@@ -235,26 +235,61 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 }
 
-class _KeyButton extends StatelessWidget {
+class _KeyButton extends StatefulWidget {
   final VoidCallback onTap;
   final Widget child;
 
   const _KeyButton({required this.onTap, required this.child});
 
   @override
+  State<_KeyButton> createState() => _KeyButtonState();
+}
+
+class _KeyButtonState extends State<_KeyButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 120),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward().then((_) => _controller.reverse());
+    widget.onTap();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 72,
-        height: 72,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: const Color(0xFF0E1628),
-          border: Border.all(color: const Color(0xFF1E2D4A)),
+      onTap: _handleTap,
+      child: ScaleTransition(
+        scale: _scaleAnimation,
+        child: Container(
+          width: 72,
+          height: 72,
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF0E1628),
+            border: Border.all(color: const Color(0xFF1E2D4A)),
+          ),
+          child: Center(child: widget.child),
         ),
-        child: Center(child: child),
       ),
     );
   }
