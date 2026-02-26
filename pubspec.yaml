@@ -21,8 +21,9 @@ dependencies:
   # Service Locator
   get_it: ^7.6.4
 
-  # Local Storage
+  # Local Storage/ Secure Storage
   shared_preferences: ^2.2.2
+  flutter_secure_storage: ^9.0.0
 
   # UI & Fonts
   google_fonts: ^6.1.0 
@@ -34,6 +35,11 @@ dependencies:
   google_mlkit_face_detection: ^0.10.0
   flutter_image_compress: ^2.1.0
 
+  #Authentication(Biometrics)
+  local_auth: ^2.3.0
+
+  # Security / Encryption
+  crypto: ^3.0.3
 
   # Permissions
   permission_handler: ^12.0.1

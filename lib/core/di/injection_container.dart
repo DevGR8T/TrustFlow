@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:trust_flow/core/security/biometric_service.dart';
+import 'package:trust_flow/core/security/pin_service.dart';
 import 'package:trust_flow/features/market_rates/data/datasources/exchange_rate_remote_datasource.dart';
 import 'package:trust_flow/features/market_rates/data/repositories/exchange_rate_repository_impl.dart';
 import 'package:trust_flow/features/market_rates/domain/repositories/exchange_rate_repository.dart';
@@ -30,6 +33,7 @@ Future<void> initDependencies() async {
           error: true,
           logPrint: (obj) => print('[DIO] $obj'),
         )));
+
 
 /// ONBOARDING FEATURE
 
@@ -74,4 +78,14 @@ Future<void> initDependencies() async {
 
   // Bloc
  sl.registerFactory(() => ExchangeRateBloc(getUsdNgnRate: sl()));
+
+
+ /// SECURITY
+sl.registerLazySingleton(() => const FlutterSecureStorage(
+  aOptions: AndroidOptions(
+    encryptedSharedPreferences: true,
+  ),
+));
+sl.registerLazySingleton(() => PinService());
+sl.registerLazySingleton(() => BiometricService());
 }

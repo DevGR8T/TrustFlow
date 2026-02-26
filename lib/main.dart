@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:trust_flow/core/security/auth_guard.dart';
 import 'package:trust_flow/features/market_rates/presentation/bloc/exchange_rate_bloc.dart';
 import 'package:trust_flow/features/market_rates/presentation/bloc/exchange_rate_event.dart';
 import 'core/constants/theme.dart';
@@ -13,9 +14,9 @@ import 'features/onboarding/presentation/screens/welcome_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-   
-   // Load environment variables before any initialization
-    await dotenv.load(fileName: '.env');
+
+  // Load environment variables before any initialization
+  await dotenv.load(fileName: '.env');
 
   // Initialize HydratedBloc storage
   final storage = await HydratedStorage.build(
@@ -61,7 +62,7 @@ class TrustFlow extends StatelessWidget {
         title: 'TrustFlow KYC',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark(),
-        home: const WelcomeScreen(),
+        home: const AuthGuard(child: WelcomeScreen()),
       ),
     );
   }
