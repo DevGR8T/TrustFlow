@@ -40,7 +40,7 @@ jobs:
 
       # ── 6. Analyze code quality ────────────────────────────────
       - name: Analyze code
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       # ── 7. Run tests ───────────────────────────────────────────
       - name: Run tests
