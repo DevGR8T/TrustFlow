@@ -64,6 +64,39 @@ Environment Variables: flutter_dotenv
 Image Handling: image_picker & flutter_image_compress. 
 
 
+## 🔄 CI/CD Pipeline (Automated Builds)
+
+This project uses GitHub Actions to automatically validate and build the application on every push.
+
+ Pipeline Workflow:
+
+Every time code is pushed to the main branch:
+
+Environment Setup
+Installs Java 17
+Installs latest stable Flutter SDK
+Code Quality Checks
+Runs flutter analyze to enforce clean code standards
+Automated Testing
+Runs all unit tests using flutter test
+Secure Environment Injection
+Loads API keys securely using GitHub Secrets (.env file generation)
+Production Build
+Builds a Release APK for Android
+Artifact Delivery
+Uploads the generated APK as a downloadable build artifact in the Actions tab
+
+### Why This Matters
+- Prevents broken builds from reaching production  
+- Ensures every change is automatically tested  
+- Keeps the app in a deployable state at all times  
+
+
+🔽 Access Build Artifacts
+
+After every successful run, you can download the latest APK from the GitHub Actions → Artifacts section.
+
+
 
 
 ### INSTALLATION INSTRUCTIONS
