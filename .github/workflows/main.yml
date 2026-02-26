@@ -1,0 +1,60 @@
+name: TrustFlow CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Analyze, Test & Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout code ───────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Java (required for Android builds) ───────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # ── 3. Set up Flutter SDK ──────────────────────────────────
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
+          cache: true
+
+      # ── 4. Create .env file from GitHub Secret ─────────────────
+      - name: Create .env file
+        run: echo "EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}" > .env
+
+      # ── 5. Install dependencies ────────────────────────────────
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ── 6. Analyze code quality ────────────────────────────────
+      - name: Analyze code
+        run: flutter analyze
+
+      # ── 7. Run tests ───────────────────────────────────────────
+      - name: Run tests
+        run: flutter test
+
+      # ── 8. Build release APK ───────────────────────────────────
+      - name: Build release APK
+        run: flutter build apk --release
+
+      # ── 9. Upload APK as artifact ──────────────────────────────
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trustflow-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
