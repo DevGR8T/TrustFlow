@@ -46,11 +46,16 @@ jobs:
       - name: Run tests
         run: flutter test
 
-      # ── 8. Build release APK ───────────────────────────────────
-      - name: Build release APK
-        run: flutter build apk --release
+      # ── 8. Accept Android licenses ────────────────────────────
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
 
-      # ── 9. Upload APK as artifact ──────────────────────────────
+      # ── 9. Build release APK ──────────────────────────────────
+      - name: Build release APK
+        if: github.event_name == 'push'
+        run: flutter build apk --release --no-shrink
+
+      # ── 10. Upload APK as artifact ──────────────────────────────
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
