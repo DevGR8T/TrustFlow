@@ -3,7 +3,7 @@
 TrustFlow is a mobile fintech onboarding and KYC application built with Flutter for Android and iOS.  
 It reflects how real Nigerian fintech onboarding systems are built — focusing on reliability, regulated flows, and user trust.
 
-In emerging markets, users often drop off during onboarding because the app restarts and loses their data, or image uploads take too long. TrustFlow solves this using State Persistence and Client-Side Compression.
+In emerging markets, users often drop off during onboarding because the app restarts and loses their data, or image uploads take too long. TrustFlow solves this using State Persistence , Client-Side Compression, and Bank-Grade Security.
 
 
 
@@ -12,15 +12,22 @@ In emerging markets, users often drop off during onboarding because the app rest
 1. Data Loss & User Frustration
 Problem: In standard apps, if a user minimizes the app to copy a BVN or their phone kills the background process, the form resets. This causes users to quit.
 My Solution (Hydrated State): I implemented HydratedBloc. The app automatically saves the user's progress to local storage. If the app is killed and reopened, the user returns to the exact same step with their data intact.
+
 2. Slow Uploads & Bandwidth
 Problem: Uploading a 5MB raw camera photo on a 3G network causes timeouts and high data costs.
 My Solution (Compression): I wrote a service that compresses ID cards and Selfies on the device (client-side) to under 300KB before the upload starts. This makes the app faster and cheaper for the user.
+
 3. Data Privacy & Security
 Problem: Banking apps often expose sensitive data (BVN/Balance) when the user switches between apps (Multitasking view).
 My Solution (Privacy Shield): I implemented a lifecycle listener that automatically blurs the app screen when it goes into the background, protecting user data from bystanders.
+
 4. Lack of Real-Time Financial Context
 Problem: Users onboarding into fintech apps often don’t see real-time financial context (like exchange rates), which reduces trust and perceived usefulness.
 My Solution (Live Market Data): I integrated a real REST API using Dio to fetch live USD/NGN exchange rates. The feature is built using Clean Architecture with a RemoteDataSource, Repository, and UseCase, including proper error handling for network failures and offline states.
+
+5. Unauthorized App Access
+Problem: If a user's phone is picked up by someone else, sensitive KYC data is immediately visible with no access control.
+My Solution (PIN + Biometric Authentication): I implemented a custom 4-digit PIN system with SHA-256 hashing stored in Android EncryptedSharedPreferences via flutter_secure_storage. On supported devices, users can authenticate with fingerprint or Face ID as a faster alternative. The PIN is never stored in plain text — only its hash — which is the same principle used by real banking apps.
 
 
 
@@ -44,11 +51,6 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 
 
-### SYSTEM REQUIREMENTS
-- **Android**: Android 5.0 (API level 21) or higher
-- **iOS**: iOS 12.0 or later
-
-
 
 ## 🧱 TECH STACK
 
@@ -56,7 +58,9 @@ State Management: flutter_bloc & hydrated_bloc (for state persistence).
 Architecture: Clean Architecture (Domain, Data, Presentation layers).
 Dependency Injection: get_it (Service Locator pattern) 
 Networking: dio (for REST API integration)
+Security: flutter_secure_storage, local_auth, crypto
 Local Storage: shared_preferences (via HydratedBloc).
+Environment Variables: flutter_dotenv
 Image Handling: image_picker & flutter_image_compress. 
 
 
@@ -77,6 +81,7 @@ Image Handling: image_picker & flutter_image_compress.
 
 ## 🚀 APP FEATURES
 
+- PIN authentication with SHA-256 hashing on first launch
 - Progressive onboarding flow  
 - Consent & compliance screens  
 - Personal information capture  
@@ -85,13 +90,14 @@ Image Handling: image_picker & flutter_image_compress.
 - Selfie capture for face verification  
 - Verification submission states (loading, success, failure)  
 - Clear retry and error handling  
-- Save & resume onboarding progress  
+- Save & resume onboarding progress (survives app kill)
 - Verification status tracking (pending, approved, failed)  
 - BLoC-based state management  
 - Dependency Injection using GetIt for scalable architecture
 - Clean Architecture structure  
 - Mocked REST API integration  
 - Live USD → NGN exchange rate (real REST API integration)
+- Secure API key management via .env
 
 
 ## 📂 PROJECT STRUCTURE
@@ -104,16 +110,51 @@ lib
 │   │   ├── colors.dart
 │   │   ├── strings.dart
 │   │   └── theme.dart
+│   ├── di
+│   │   └── injection_container.dart
 │   ├── error
 │   │   ├── exceptions.dart
 │   │   └── failures.dart
+│   ├── security
+│   │   ├── auth_guard.dart
+│   │   ├── biometric_service.dart
+│   │   └── pin_service.dart
 │   └── utils
 │       ├── bvn_validator.dart
 │       ├── helpers.dart
+│       ├── image_compressor.dart
 │       ├── phone_input_formatter.dart
 │       ├── phone_validator.dart
+│       ├── secure_screen_mixin.dart
 │       └── validators.dart
 ├── features
+│   ├── auth
+│   │   └── presentation
+│   │       └── screens
+│   │           ├── pin_entry_screen.dart
+│   │           └── pin_setup_screen.dart
+│   ├── market_rates
+│   │   ├── data
+│   │   │   ├── datasources
+│   │   │   │   └── exchange_rate_remote_datasource.dart
+│   │   │   ├── models
+│   │   │   │   └── exchange_rate_model.dart
+│   │   │   └── repositories
+│   │   │       └── exchange_rate_repository_impl.dart
+│   │   ├── domain
+│   │   │   ├── entities
+│   │   │   │   └── exchange_rate.dart
+│   │   │   ├── repositories
+│   │   │   │   └── exchange_rate_repository.dart
+│   │   │   └── usecases
+│   │   │       └── get_usd_ngn_rate.dart
+│   │   └── presentation
+│   │       ├── bloc
+│   │       │   ├── exchange_rate_bloc.dart
+│   │       │   ├── exchange_rate_event.dart
+│   │       │   └── exchange_rate_state.dart
+│   │       └── widgets
+│   │           └── exchange_rate_banner.dart
 │   └── onboarding
 │       ├── data
 │       │   ├── models
@@ -173,9 +214,15 @@ lib
 
 ### Getting Started
 1. Clone the repository  
+
 2. Install dependencies:
-3. flutter pub get
-4. flutter run
+   flutter pub get
+
+3. Create a .env file in the project root:
+ EXCHANGE_RATE_API_KEY=your_api_key_here
+
+4. Run the app:
+  flutter run
   
 
 
