@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:trust_flow/core/constants/colors.dart';
 import 'package:trust_flow/core/di/injection_container.dart';
 import 'package:trust_flow/core/security/pin_service.dart';
 import 'pin_entry_screen.dart';
@@ -96,7 +97,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFD4AF37).withOpacity(0.4),
+                    color:  AppColors.gold.withOpacity(0.4),
                     width: 1.5,
                   ),
                   color: const Color(0xFF0E1628),
@@ -104,7 +105,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 child: const Icon(
                   Icons.lock_rounded,
                   size: 32,
-                  color: Color(0xFFD4AF37),
+                  color: AppColors.gold,
                 ),
               ),
 
@@ -179,11 +180,11 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: filled
-                ? const Color(0xFFD4AF37)
+                ?  AppColors.gold
                 : const Color(0xFF1E2D4A),
             border: Border.all(
               color: filled
-                  ? const Color(0xFFD4AF37)
+                  ?  AppColors.gold
                   : const Color(0xFF2E3D5A),
               width: 1.5,
             ),

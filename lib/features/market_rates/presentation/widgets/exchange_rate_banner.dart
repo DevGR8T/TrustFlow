@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/core/constants/colors.dart';
 import '../bloc/exchange_rate_bloc.dart';
 import '../bloc/exchange_rate_state.dart';
 
@@ -146,7 +147,7 @@ class _ExchangeRateBannerState extends State<ExchangeRateBanner>
         height: 12,
         child: CircularProgressIndicator(
           strokeWidth: 1.5,
-          color: Color(0xFFD4AF37),
+          color: AppColors.gold,
         ),
       );
     }
@@ -165,7 +166,7 @@ class _ExchangeRateBannerState extends State<ExchangeRateBanner>
                 style: const TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFD4AF37),
+                  color: AppColors.gold,
                   letterSpacing: 0.3,
                   fontFamily: "serif"
                 ),

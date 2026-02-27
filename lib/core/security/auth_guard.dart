@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:trust_flow/core/constants/colors.dart';
 import 'package:trust_flow/core/di/injection_container.dart';
 import 'package:trust_flow/core/security/pin_service.dart';
 import 'package:trust_flow/features/auth/presentation/pin_entry_screen.dart';
@@ -38,7 +39,7 @@ class _AuthGuardState extends State<AuthGuard> {
       return const Scaffold(
         backgroundColor: Color(0xFF0A0E1A),
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+          child: CircularProgressIndicator(color: AppColors.gold),
         ),
       );
     }

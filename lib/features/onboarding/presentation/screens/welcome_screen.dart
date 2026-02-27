@@ -89,7 +89,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   void _resumeFromSavedState() {
   final state = context.read<OnboardingBloc>().state;
-  print('🔵 Restored state on launch: $state');
 
   if (state is ConsentSaved) {
     Navigator.push(context, fadeRoute(const PersonalInfoScreen()));
@@ -114,7 +113,6 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-      print('🔵 Restored state on launch: ${context.read<OnboardingBloc>().state}'); 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0E1A),
       body: Stack(
@@ -197,7 +195,7 @@ Widget _buildTopBar() {
             height: 28,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFFD4AF37), Color(0xFFF5E27A)],
+                colors: [AppColors.gold, Color(0xFFF5E27A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -212,7 +210,7 @@ Widget _buildTopBar() {
               fontFamily: 'Courier',
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFD4AF37),
+              color: AppColors.gold,
               letterSpacing: 3.5,
             ),
           ),
@@ -276,7 +274,7 @@ Widget _buildTopBar() {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFD4AF37).withOpacity(0.08),
+                    color:  AppColors.gold.withOpacity(0.08),
                     width: 1,
                   ),
                 ),
@@ -289,7 +287,7 @@ Widget _buildTopBar() {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: const Color(0xFFD4AF37).withOpacity(0.18),
+                  color:  AppColors.gold.withOpacity(0.18),
                   width: 1,
                 ),
               ),
@@ -306,12 +304,12 @@ Widget _buildTopBar() {
                   end: Alignment.bottomRight,
                 ),
                 border: Border.all(
-                  color: const Color(0xFFD4AF37).withOpacity(0.4),
+                  color:  AppColors.gold.withOpacity(0.4),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.15),
+                    color:  AppColors.gold.withOpacity(0.15),
                     blurRadius: 24,
                     spreadRadius: 2,
                   ),
@@ -320,7 +318,7 @@ Widget _buildTopBar() {
               child: const Icon(
                 Icons.verified_user_rounded,
                 size: 32,
-                color: Color(0xFFD4AF37),
+                color: AppColors.gold,
               ),
             ),
           ],
@@ -353,7 +351,7 @@ Widget _buildTopBar() {
           height: 3,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFD4AF37), Color(0xFFF5E27A)],
+              colors: [AppColors.gold, Color(0xFFF5E27A)],
             ),
             borderRadius: BorderRadius.circular(2),
           ),
@@ -393,7 +391,7 @@ Widget _buildTopBar() {
         Icons.gavel_rounded,
         'Fully Regulated',
         'FCA & PSD2 compliant',
-        const Color(0xFFD4AF37),
+         AppColors.gold,
       ),
     ];
 
@@ -508,14 +506,14 @@ Widget _buildTopBar() {
             child: Ink(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFFD4AF37), Color(0xFFF0D060)],
+                  colors: [AppColors.gold, Color(0xFFF0D060)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFD4AF37).withOpacity(0.28),
+                    color:  AppColors.gold.withOpacity(0.28),
                     blurRadius: 18,
                     offset: const Offset(0, 6),
                   ),
@@ -570,9 +568,9 @@ Widget _buildTopBar() {
                 'Terms & Privacy Policy',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Color(0xFFD4AF37),
+                  color: AppColors.gold,
                   decoration: TextDecoration.underline,
-                  decorationColor: Color(0xFFD4AF37),
+                  decorationColor: AppColors.gold,
                 ),
               ),
             ),
@@ -615,7 +613,7 @@ class _GeometricBackgroundPainter extends CustomPainter {
 
     // Top-right accent arc
     final arcPaint = Paint()
-      ..color = const Color(0xFFD4AF37).withOpacity(0.07)
+      ..color =  AppColors.gold.withOpacity(0.07)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
     canvas.drawArc(
@@ -632,7 +630,7 @@ class _GeometricBackgroundPainter extends CustomPainter {
       0.5,
       1.2,
       false,
-      arcPaint..color = const Color(0xFFD4AF37).withOpacity(0.05),
+      arcPaint..color =  AppColors.gold.withOpacity(0.05),
     );
 
     // Bottom glow blob

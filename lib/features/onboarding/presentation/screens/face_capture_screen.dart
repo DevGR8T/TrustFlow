@@ -91,22 +91,22 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen>
 
 @override
 void didChangeAppLifecycleState(AppLifecycleState state) {
-  print('📱 App lifecycle state: $state');
+ 
   
   final controller = _cameraController;
   
   if (state == AppLifecycleState.inactive) {
-    print('⏸️ App going inactive');
+   
     controller?.stopImageStream();
   } else if (state == AppLifecycleState.paused) {
-    print('⏸️ App paused');
+   
     controller?.dispose();
     setState(() {
       _cameraController = null;
       _isCameraInitialized = false;
     });
   } else if (state == AppLifecycleState.resumed) {
-    print('▶️ App resumed');
+    
     // Check permission and reinitialize
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
