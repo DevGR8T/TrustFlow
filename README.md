@@ -41,13 +41,13 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 ## Screenshots
 
-| Welcome Screen | Data Consent | Personal Details | Bvn Verification |
+| Pin Entry Screen | Welcome Screen | Data Consent | Personal Details |
 |:-:|:-:|:-:|:-:|
-| ![Welcome Screen](screenshots/welcome_screen.jpeg) | ![Data Consent](screenshots/consent_screen.jpeg) | ![Personal Details](screenshots/personal_details_screen.jpeg) | ![Bvn Verification](screenshots/bvn_verification_screen.jpeg) |
+| ![Pin Entry Screen](screenshots/pin_entry_screen.jpeg)| ![Welcome Screen](screenshots/welcome_screen.jpeg) | ![Data Consent](screenshots/consent_screen.jpeg) | ![Personal Details](screenshots/personal_details_screen.jpeg) | 
 
-| Upload Document | Face Capture | Verification Status |  |   
+| Bvn Verification | Upload Document | Face Capture | Verification Status |  
 |:-:|:-:|:-:|:-:|
-| ![Upload Document](screenshots/upload_document.jpeg) | ![Face Capture](screenshots/face_capture.jpeg) | ![Verification Status](screenshots/verification_status.jpeg) | 
+| ![Bvn Verification](screenshots/bvn_verification_screen.jpeg)| ![Upload Document](screenshots/upload_document.jpeg) | ![Face Capture](screenshots/face_capture.jpeg) | ![Verification Status](screenshots/verification_status.jpeg) | 
 
 
 
