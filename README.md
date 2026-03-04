@@ -36,8 +36,10 @@ My Solution (PIN + Biometric Authentication): I implemented a custom 4-digit PIN
 <img src="https://img.shields.io/badge/Download-APK-3DDC84?style=for-the-badge&logo=download&logoColor=white" alt="Download APK"/>
 </a>
 
-## 📱 DEMO VIDEO
-You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcIn7k7ybQC-G6mlTCUD/view?usp=sharing)
+## 📱 DEMO VIDEOS
+
+- Demo video (v1.0)** — KYC onboarding flow [Watch Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcIn7k7ybQC-G6mlTCUD/view?usp=sharing)
+- New Features Demo (v1.2)** — PIN auth, Dashboard & Paystack payment [Watch Here](https://drive.google.com/file/d/1xCkh2czwzfyISKh7vvv6jaNjxyJxZtEv/view?usp=sharing)
 
 ## Screenshots
 
