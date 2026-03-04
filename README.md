@@ -58,15 +58,15 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 
 ## 🧱 TECH STACK
 
-State Management: flutter_bloc & hydrated_bloc (for state persistence).
-Architecture: Clean Architecture (Domain, Data, Presentation layers).
-Dependency Injection: get_it (Service Locator pattern) 
-Networking: dio (for REST API integration)
-Payment Gateway: flutter_paystack
-Security: flutter_secure_storage, local_auth, crypto
-Local Storage: shared_preferences (via HydratedBloc).
-Environment Variables: flutter_dotenv
-Image Handling: image_picker & flutter_image_compress. 
+- State Management: flutter_bloc & hydrated_bloc (for state persistence).
+- Architecture: Clean Architecture (Domain, Data, Presentation layers).
+- Dependency Injection: get_it (Service Locator pattern) 
+- Networking: dio (for REST API integration)
+- Payment Gateway: flutter_paystack
+- Security: flutter_secure_storage, local_auth, crypto
+- Local Storage: shared_preferences (via HydratedBloc).
+- Environment Variables: flutter_dotenv
+- Image Handling: image_picker & flutter_image_compress. 
 
 
 ## 🔄 CI/CD Pipeline (Automated Builds)
@@ -77,19 +77,19 @@ This project uses GitHub Actions to automatically validate and build the applica
 
 Every time code is pushed to the main branch:
 
-Environment Setup
-Installs Java 17
-Installs latest stable Flutter SDK
-Code Quality Checks
-Runs flutter analyze to enforce clean code standards
-Automated Testing
-Runs all unit tests using flutter test
-Secure Environment Injection
-Loads API keys securely using GitHub Secrets (.env file generation)
-Production Build
-Builds a Release APK for Android
-Artifact Delivery
-Uploads the generated APK as a downloadable build artifact in the Actions tab
+- Environment Setup
+- Installs Java 17
+- Installs latest stable Flutter SDK
+- Code Quality Checks
+- Runs flutter analyze to enforce clean code standards
+- Automated Testing
+- Runs all unit tests using flutter test
+- Secure Environment Injection
+- Loads API keys securely using GitHub Secrets (.env file generation)
+- Production Build
+- Builds a Release APK for Android
+- Artifact Delivery
+- Uploads the generated APK as a downloadable build artifact in the Actions tab
 
 ### Why This Matters
 - Prevents broken builds from reaching production  
@@ -284,8 +284,8 @@ lib
    flutter pub get
 
 3. Create a .env file in the project root:
- EXCHANGE_RATE_API_KEY=your_api_key_here
- PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_key
+ - EXCHANGE_RATE_API_KEY=your_api_key_here
+ - PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_key
 
 4. Run the app:
   flutter run
