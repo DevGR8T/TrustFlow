@@ -50,6 +50,10 @@ You can see a Demo video [Here](https://drive.google.com/file/d/1pN__1vaL4MnSTcI
 | ![Bvn Verification](screenshots/bvn_verification_screen.jpeg)| ![Upload Document](screenshots/upload_document.jpeg) | ![Face Capture](screenshots/face_capture.jpeg) | ![Verification Status](screenshots/verification_status.jpeg) | 
 
 
+| Wallet Dashboard | Paystack Checkout | Card Payment | 
+|:-:|:-:|:-:|
+| ![Wallet Dashboard](screenshots/wallet_dashboard.jpeg)| ![Paystack Checkout](screenshots/paystack_checkout.jpeg) | ![Card Payment](screenshots/card_payment.jpeg) |
+
 
 
 ## 🧱 TECH STACK
@@ -58,6 +62,7 @@ State Management: flutter_bloc & hydrated_bloc (for state persistence).
 Architecture: Clean Architecture (Domain, Data, Presentation layers).
 Dependency Injection: get_it (Service Locator pattern) 
 Networking: dio (for REST API integration)
+Payment Gateway: flutter_paystack
 Security: flutter_secure_storage, local_auth, crypto
 Local Storage: shared_preferences (via HydratedBloc).
 Environment Variables: flutter_dotenv
@@ -92,8 +97,6 @@ Uploads the generated APK as a downloadable build artifact in the Actions tab
 - Keeps the app in a deployable state at all times  
 
 
-🔽 Access Build Artifacts
-
 After every successful run, you can download the latest APK from the GitHub Actions → Artifacts section.
 
 
@@ -125,6 +128,12 @@ After every successful run, you can download the latest APK from the GitHub Acti
 - Clear retry and error handling  
 - Save & resume onboarding progress (survives app kill)
 - Verification status tracking (pending, approved, failed)  
+- Dashboard with live NGN wallet balance
+- Paystack payment integration (test mode) — fund wallet via card
+- Transaction history with NGN currency formatting
+- Balance visibility toggle
+- Live USD/NGN exchange rate with auto-refresh
+- Screen privacy protection (blocks screenshots & multitasking preview)
 - BLoC-based state management  
 - Dependency Injection using GetIt for scalable architecture
 - Clean Architecture structure  
@@ -165,6 +174,29 @@ lib
 │   │       └── screens
 │   │           ├── pin_entry_screen.dart
 │   │           └── pin_setup_screen.dart
+│   ├── dashboard
+│   │   ├── data
+│   │   │   ├── models
+│   │   │   │   └── transaction_model.dart
+│   │   │   └── repositories
+│   │   │       └── wallet_repository_impl.dart
+│   │   ├── domain
+│   │   │   ├── entities
+│   │   │   │   ├── transaction.dart
+│   │   │   │   └── wallet.dart
+│   │   │   ├── repositories
+│   │   │   │   └── wallet_repository.dart
+│   │   │   └── usecases
+│   │   │       ├── deposit_funds.dart
+│   │   │       ├── get_transactions.dart
+│   │   │       └── get_wallet.dart
+│   │   └── presentation
+│   │       ├── bloc
+│   │       │   ├── wallet_bloc.dart
+│   │       │   ├── wallet_event.dart
+│   │       │   └── wallet_state.dart
+│   │       └── screens
+│   │           └── dashboard_screen.dart
 │   ├── market_rates
 │   │   ├── data
 │   │   │   ├── datasources
@@ -237,6 +269,7 @@ lib
 └── main.dart
 ```
 
+
 ## 🔧 DEVELOPMENT SETUP
 
 ### Prerequisites
@@ -252,9 +285,23 @@ lib
 
 3. Create a .env file in the project root:
  EXCHANGE_RATE_API_KEY=your_api_key_here
+ PAYSTACK_PUBLIC_KEY=pk_test_your_paystack_key
 
 4. Run the app:
   flutter run
-  
+
+
+
+### Paystack Test Card
+- Card Number : 4084 0840 8408 4081
+- Expiry      : any future date(e.g. 12/30)
+- CVV         : 408
+- PIN         : 0000
+- OTP         : 123456
+
+
+
+### BVN Test Credentials
+  BVN : 20000000008
 
 
