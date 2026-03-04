@@ -128,8 +128,7 @@ After every successful run, you can download the latest APK from the GitHub Acti
 - BLoC-based state management  
 - Dependency Injection using GetIt for scalable architecture
 - Clean Architecture structure  
-- Mocked REST API integration  
-- Live USD → NGN exchange rate (real REST API integration)
+- Mocked Identity Verification (BVN/NIN) & Live Market Data via REST API.
 - Secure API key management via .env
 
 

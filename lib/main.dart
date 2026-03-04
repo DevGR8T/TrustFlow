@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:trust_flow/core/security/auth_guard.dart';
+import 'package:trust_flow/features/dashboard/presentation/bloc/wallet_bloc.dart';
 import 'package:trust_flow/features/market_rates/presentation/bloc/exchange_rate_bloc.dart';
 import 'package:trust_flow/features/market_rates/presentation/bloc/exchange_rate_event.dart';
 import 'core/constants/theme.dart';
@@ -57,6 +58,7 @@ class TrustFlow extends StatelessWidget {
             ..add(FetchExchangeRate())
             ..add(StartExchangeRatePolling()),
         ),
+        BlocProvider<WalletBloc>(create: (_) => sl<WalletBloc>()),
       ],
       child: MaterialApp(
         title: 'TrustFlow KYC',

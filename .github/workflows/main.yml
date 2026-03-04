@@ -33,7 +33,10 @@ jobs:
 
       # ── 4. Create .env file from GitHub Secret ─────────────────
       - name: Create .env file
-        run: echo "EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}" > .env
+        run: |
+          echo "EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}" > .env
+          echo "PAYSTACK_SECRET_KEY=${{ secrets.PAYSTACK_SECRET_KEY }}" >> .env
+
 
       # ── 5. Install dependencies ────────────────────────────────
       - name: Install dependencies

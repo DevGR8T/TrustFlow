@@ -4,6 +4,7 @@ import 'package:trust_flow/core/constants/colors.dart';
 import 'package:trust_flow/core/di/injection_container.dart';
 import 'package:trust_flow/core/security/biometric_service.dart';
 import 'package:trust_flow/core/security/pin_service.dart';
+import 'package:trust_flow/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:trust_flow/features/onboarding/presentation/screens/welcome_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:trust_flow/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:trust_flow/features/onboarding/presentation/bloc/onboarding_event.dart';
 import 'package:trust_flow/features/onboarding/presentation/screens/welcome_screen.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
@@ -37,29 +38,36 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
     super.initState();
 
     _enterController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 800),
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
     _pulseController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1800),
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
     _checkController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 600),
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
     );
 
-    _fadeAnim = CurvedAnimation(parent: _enterController, curve: Curves.easeOut);
+    _fadeAnim = CurvedAnimation(
+      parent: _enterController,
+      curve: Curves.easeOut,
+    );
     _scaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
       CurvedAnimation(parent: _enterController, curve: Curves.easeOutBack),
     );
     _pulseAnim = Tween<double>(begin: 0.9, end: 1.12).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _checkAnim = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _checkController, curve: Curves.easeOut),
-    );
+    _checkAnim = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _checkController, curve: Curves.easeOut));
 
     _enterController.forward();
 
-     // Trigger the upload once screen loads
+    // Trigger the upload once screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkCurrentState();
     });
@@ -86,7 +94,6 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
     setState(() => _status = _VerificationStatus.failed);
     _pulseController.stop();
   }
-  
 
   @override
   void dispose() {
@@ -109,37 +116,38 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
       child: PopScope(
         canPop: false,
         child: Scaffold(
-        backgroundColor: AppColors.primary,
-        body: Stack(
-          children: [
-            SubtleGridBackground(),
-            SafeArea(
-              child: FadeTransition(
-                opacity: _fadeAnim,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 24),
-                      _buildTopBar(),
-                      const Spacer(flex: 2),
-                      _buildStatusMark(),
-                      const SizedBox(height: 40),
-                      _buildStatusText(),
-                      const Spacer(flex: 3),
-                      _buildChecklist(),
-                      const Spacer(flex: 2),
-                      _buildActions(context),
-                      const SizedBox(height: 36),
-                    ],
+          backgroundColor: AppColors.primary,
+          body: Stack(
+            children: [
+              SubtleGridBackground(),
+              SafeArea(
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 24),
+                        _buildTopBar(),
+                        const Spacer(flex: 2),
+                        _buildStatusMark(),
+                        const SizedBox(height: 40),
+                        _buildStatusText(),
+                        const Spacer(flex: 3),
+                        _buildChecklist(),
+                        const Spacer(flex: 2),
+                        _buildActions(context),
+                        const SizedBox(height: 36),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildTopBar() {
@@ -157,17 +165,21 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 6, height: 6,
+                width: 6,
+                height: 6,
                 decoration: const BoxDecoration(
-                  color: AppColors.gold, shape: BoxShape.circle,
+                  color: AppColors.gold,
+                  shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 6),
               const Text(
                 AppStrings.appName,
                 style: TextStyle(
-                  fontSize: 11, fontWeight: FontWeight.w700,
-                  color: AppColors.gold, letterSpacing: 2.5,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.gold,
+                  letterSpacing: 2.5,
                 ),
               ),
             ],
@@ -182,9 +194,21 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
       animation: Listenable.merge([_pulseController, _checkController]),
       builder: (context, _) {
         final (Color accent, Color dim, IconData icon) = switch (_status) {
-          _VerificationStatus.pending => (AppColors.gold,    AppColors.gold.withOpacity(0.12),    Icons.access_time_rounded),
-          _VerificationStatus.success => (AppColors.success, AppColors.successDim,               Icons.verified_rounded),
-          _VerificationStatus.failed  => (AppColors.error,   AppColors.errorDim,                 Icons.cancel_outlined),
+          _VerificationStatus.pending => (
+            AppColors.gold,
+            AppColors.gold.withOpacity(0.12),
+            Icons.access_time_rounded,
+          ),
+          _VerificationStatus.success => (
+            AppColors.success,
+            AppColors.successDim,
+            Icons.verified_rounded,
+          ),
+          _VerificationStatus.failed => (
+            AppColors.error,
+            AppColors.errorDim,
+            Icons.cancel_outlined,
+          ),
         };
 
         return ScaleTransition(
@@ -215,10 +239,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                 height: 130,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: accent.withOpacity(0.15),
-                    width: 1,
-                  ),
+                  border: Border.all(color: accent.withOpacity(0.15), width: 1),
                 ),
               ),
 
@@ -229,10 +250,7 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: dim,
-                  border: Border.all(
-                    color: accent.withOpacity(0.4),
-                    width: 2,
-                  ),
+                  border: Border.all(color: accent.withOpacity(0.4), width: 2),
                   boxShadow: [
                     BoxShadow(
                       color: accent.withOpacity(0.18),
@@ -263,12 +281,18 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
 
   Widget _buildStatusText() {
     final (String title, String body) = switch (_status) {
-      _VerificationStatus.pending =>
-        (AppStrings.statusPendingTitle, AppStrings.statusPendingBody),
-      _VerificationStatus.success =>
-        (AppStrings.statusSuccessTitle, AppStrings.statusSuccessBody),
-      _VerificationStatus.failed  =>
-        (AppStrings.statusFailedTitle,  AppStrings.statusFailedBody),
+      _VerificationStatus.pending => (
+        AppStrings.statusPendingTitle,
+        AppStrings.statusPendingBody,
+      ),
+      _VerificationStatus.success => (
+        AppStrings.statusSuccessTitle,
+        AppStrings.statusSuccessBody,
+      ),
+      _VerificationStatus.failed => (
+        AppStrings.statusFailedTitle,
+        AppStrings.statusFailedBody,
+      ),
     };
 
     return AnimatedSwitcher(
@@ -279,8 +303,11 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
           Text(
             title,
             style: const TextStyle(
-              fontSize: 34, fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary, letterSpacing: -0.9, height: 1.15,
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.9,
+              height: 1.15,
             ),
             textAlign: TextAlign.center,
           ),
@@ -288,7 +315,9 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
           Text(
             body,
             style: const TextStyle(
-              fontSize: 15, color: AppColors.textMuted, height: 1.65,
+              fontSize: 15,
+              color: AppColors.textMuted,
+              height: 1.65,
             ),
             textAlign: TextAlign.center,
           ),
@@ -334,29 +363,29 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                       color: item.done
                           ? AppColors.successDim
                           : item.inProgress
-                              ? AppColors.gold.withOpacity(0.1)
-                              : AppColors.primaryMid,
+                          ? AppColors.gold.withOpacity(0.1)
+                          : AppColors.primaryMid,
                       border: Border.all(
                         color: item.done
                             ? AppColors.success.withOpacity(0.5)
                             : item.inProgress
-                                ? AppColors.gold.withOpacity(0.4)
-                                : AppColors.primaryBorder,
+                            ? AppColors.gold.withOpacity(0.4)
+                            : AppColors.primaryBorder,
                         width: 1,
                       ),
                     ),
                     child: Center(
                       child: item.inProgress
                           ? const SizedBox(
-                              width: 12, height: 12,
+                              width: 12,
+                              height: 12,
                               child: CircularProgressIndicator(
-                                strokeWidth: 1.5, color: AppColors.gold,
+                                strokeWidth: 1.5,
+                                color: AppColors.gold,
                               ),
                             )
                           : Icon(
-                              item.done
-                                  ? Icons.check_rounded
-                                  : Icons.remove,
+                              item.done ? Icons.check_rounded : Icons.remove,
                               size: 13,
                               color: item.done
                                   ? AppColors.success
@@ -373,8 +402,8 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                       color: item.done
                           ? AppColors.textSecondary
                           : item.inProgress
-                              ? AppColors.gold
-                              : AppColors.textDisabled,
+                          ? AppColors.gold
+                          : AppColors.textDisabled,
                     ),
                   ),
                   const Spacer(),
@@ -382,7 +411,8 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                     const Text(
                       'Complete',
                       style: TextStyle(
-                        fontSize: 11, color: AppColors.success,
+                        fontSize: 11,
+                        color: AppColors.success,
                         fontWeight: FontWeight.w600,
                       ),
                     )
@@ -390,7 +420,8 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
                     const Text(
                       'Processing…',
                       style: TextStyle(
-                        fontSize: 11, color: AppColors.gold,
+                        fontSize: 11,
+                        color: AppColors.gold,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -430,13 +461,11 @@ class _VerificationStatusScreenState extends State<VerificationStatusScreen>
               : AppStrings.statusRetry,
           onPressed: () {
             if (_status == _VerificationStatus.success) {
-              context.read<OnboardingBloc>().add( ResetOnboardingEvent());
-              // Navigate to welcome screen 
-               Navigator.pushAndRemoveUntil(
-              context,
-              fadeRoute(const WelcomeScreen()),
-              (route) => false,
-            );
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                (route) => false,
+              );
             } else {
               Navigator.popUntil(context, (r) => r.isFirst);
             }
