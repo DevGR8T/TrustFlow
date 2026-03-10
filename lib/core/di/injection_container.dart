@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get_it/get_it.dart';
+import 'package:trust_flow/core/ml/face_match_service.dart';
 import 'package:trust_flow/core/security/biometric_service.dart';
 import 'package:trust_flow/core/security/pin_service.dart';
 import 'package:trust_flow/features/dashboard/data/repositories/wallet_repository_impl.dart';
@@ -14,7 +15,11 @@ import 'package:trust_flow/features/market_rates/data/repositories/exchange_rate
 import 'package:trust_flow/features/market_rates/domain/repositories/exchange_rate_repository.dart';
 import 'package:trust_flow/features/market_rates/domain/usecases/get_usd_ngn_rate.dart';
 import 'package:trust_flow/features/market_rates/presentation/bloc/exchange_rate_bloc.dart';
+import 'package:trust_flow/features/onboarding/data/repositories/face_match_repository_impl.dart';
 import 'package:trust_flow/features/onboarding/data/repositories/mock_verification_repository.dart';
+import 'package:trust_flow/features/onboarding/domain/repositories/face_match_repository.dart';
+import 'package:trust_flow/features/onboarding/domain/usecases/match_faces.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/face_match_bloc.dart';
 import '../constants/app_constants.dart';
 import '../../features/onboarding/domain/repositories/verification_repository.dart';
 import '../../features/onboarding/domain/usecases/verify_bvn.dart';
@@ -23,55 +28,76 @@ import '../../features/onboarding/presentation/bloc/onboarding_bloc.dart';
 final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
-  sl.registerLazySingleton<Dio>(() => Dio(BaseOptions(
-        baseUrl: AppConstants.baseUrl,
-        connectTimeout: AppConstants.timeoutDuration,
-        receiveTimeout: AppConstants.timeoutDuration,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache', 
-        },
-      ))
-        ..interceptors.add(LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          error: true,
-          logPrint: (obj) => print('[DIO] $obj'),
-        )));
+  sl.registerLazySingleton<Dio>(
+    () =>
+        Dio(
+            BaseOptions(
+              baseUrl: AppConstants.baseUrl,
+              connectTimeout: AppConstants.timeoutDuration,
+              receiveTimeout: AppConstants.timeoutDuration,
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache',
+              },
+            ),
+          )
+          ..interceptors.add(
+            LogInterceptor(
+              requestBody: true,
+              responseBody: true,
+              error: true,
+              logPrint: (obj) => print('[DIO] $obj'),
+            ),
+          ),
+  );
 
+  /// ONBOARDING FEATURE
 
-/// ONBOARDING FEATURE
-
- // Repository
+  // Repository
   sl.registerLazySingleton<VerificationRepository>(
-  () => MockVerificationRepository(),
-);
+    () => MockVerificationRepository(),
+  );
 
- // Usecases
+  // Usecases
   sl.registerLazySingleton(() => VerifyBvn(sl()));
   sl.registerLazySingleton(() => UploadDocument(sl()));
   sl.registerLazySingleton(() => UploadFaceCapture(sl()));
   sl.registerLazySingleton(() => GetSavedProgress(sl()));
   sl.registerLazySingleton(() => SaveProgress(sl()));
 
- // Bloc
-  sl.registerFactory(() => OnboardingBloc(
-        verifyBvn: sl(),
-        uploadDocument: sl(),
-        uploadFaceCapture: sl(),
-        getSavedProgress: sl(),
-        saveProgress: sl(),
-      ));
+  // Bloc
+  sl.registerFactory(
+    () => OnboardingBloc(
+      verifyBvn: sl(),
+      uploadDocument: sl(),
+      uploadFaceCapture: sl(),
+      getSavedProgress: sl(),
+      saveProgress: sl(),
+    ),
+  );
+
+  /// FACE MATCH FEATURE
+  sl.registerLazySingleton(() => FaceMatchService());
+
+  sl.registerLazySingleton<FaceMatchRepository>(
+    () => FaceMatchRepositoryImpl(faceMatchService: sl()),
+  );
+
+  sl.registerLazySingleton(() => MatchFaces(sl()));
+
+  sl.registerFactory(
+    () => FaceMatchBloc(matchFaces: sl(), faceMatchService: sl()),
+  );
 
 
+  
 
+  ///EXCHANGE RATE FEATURE
 
- ///EXCHANGE RATE FEATURE
-     
-    // Datasource
+  // Datasource
   sl.registerLazySingleton<ExchangeRateRemoteDataSource>(
-   () => ExchangeRateRemoteDataSourceImpl(),
+    () => ExchangeRateRemoteDataSourceImpl(),
   );
 
   // Repository
@@ -83,18 +109,12 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => GetUsdNgnRate(sl()));
 
   // Bloc
- sl.registerFactory(() => ExchangeRateBloc(getUsdNgnRate: sl()));
+  sl.registerFactory(() => ExchangeRateBloc(getUsdNgnRate: sl()));
 
-
-
-
-
- /// DASHBOARD FEATURE
+  /// DASHBOARD FEATURE
 
   // Repository
-  sl.registerLazySingleton<WalletRepository>(
-    () => WalletRepositoryImpl(),
-  );
+  sl.registerLazySingleton<WalletRepository>(() => WalletRepositoryImpl());
 
   // Usecases
   sl.registerLazySingleton(() => GetWallet(sl()));
@@ -102,20 +122,17 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => GetTransactions(sl()));
 
   // Bloc
-  sl.registerFactory(() => WalletBloc(
-        getWallet: sl(),
-        depositFunds: sl(),
-        getTransactions: sl(),
-      ));
-      
+  sl.registerFactory(
+    () =>
+        WalletBloc(getWallet: sl(), depositFunds: sl(), getTransactions: sl()),
+  );
 
-
- /// SECURITY
-sl.registerLazySingleton(() => const FlutterSecureStorage(
-  aOptions: AndroidOptions(
-    encryptedSharedPreferences: true,
-  ),
-));
-sl.registerLazySingleton(() => PinService());
-sl.registerLazySingleton(() => BiometricService());
+  /// SECURITY
+  sl.registerLazySingleton(
+    () => const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    ),
+  );
+  sl.registerLazySingleton(() => PinService());
+  sl.registerLazySingleton(() => BiometricService());
 }

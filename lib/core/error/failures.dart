@@ -52,6 +52,10 @@ class ExchangeRateFailure extends Failure {
   const ExchangeRateFailure({required super.message, super.code});
 }
 
+class VerificationFailure extends Failure {
+  const VerificationFailure({required super.message, super.code});
+}
+
 class UnknownFailure extends Failure {
   const UnknownFailure({
     super.message = 'An unexpected error occurred. Please try again.',

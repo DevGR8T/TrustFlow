@@ -6,9 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:trust_flow/core/di/injection_container.dart';
 import 'package:trust_flow/core/utils/image_compressor.dart';
 import 'package:trust_flow/core/utils/secure_screen_mixin.dart';
 import 'package:trust_flow/features/onboarding/domain/repositories/liveness_detector_repository_impl.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/face_match_bloc.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/face_match_event.dart';
+import 'package:trust_flow/features/onboarding/presentation/bloc/face_match_state.dart';
 import 'package:trust_flow/features/onboarding/presentation/widgets/page_transitions.dart';
 import '../../../../core/constants/colors.dart';
 import '../../../../core/constants/strings.dart';
@@ -398,9 +402,9 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
     // Compress before upload
     final compressed = await ImageCompressor.compress(
       imagePath,
-      quality: 75,       // slightly higher for biometrics accuracy
-      maxWidth: 800,
-      maxHeight: 800,
+      quality: 90,       // slightly higher for biometrics accuracy
+      maxWidth: 1200,
+      maxHeight: 1200,
     );
 
     if (mounted) {
@@ -440,67 +444,134 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
     _cameraController?.startImageStream(_processCameraImage);
   }
 
-  void _retake() {
-    setState(() => _capturedImagePath = null);
-    _resetLivenessDetection();
+ void _retake() {
+  if (Navigator.of(context, rootNavigator: true).canPop()) {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+  setState(() => _capturedImagePath = null);
+  _resetLivenessDetection();
+}
+
+
+ void _onConfirm(BuildContext context) {
+  if (_capturedImagePath == null) return;
+
+  final onboardingState = context.read<OnboardingBloc>().state;
+  if (onboardingState is! DocumentUploaded) {
+    ErrorDialog.show(
+      context,
+      title: 'Missing ID',
+      message: 'Could not find your ID document. Please go back and re-upload.',
+      primaryActionLabel: 'Go Back',
+      onPrimaryAction: () => Navigator.pop(context),
+    );
+    return;
   }
 
-  void _onConfirm() {
-    if (_capturedImagePath == null) {
-      
-      return;
-    }
-
-
-
-    final livenessData = {
-      'blink_detected': _blinkDetected,
-      'smile_detected': _smileDetected,
-      'head_turn_left': _leftTurnDetected,
-      'head_turn_right': _rightTurnDetected,
-      'timestamp': DateTime.now().toIso8601String(),
-    };
-
-
-    context.read<OnboardingBloc>().add(
-          UploadFaceCaptureEvent(
-            imagePath: _capturedImagePath!,
-            livenessVerified: true,
-            livenessData: livenessData,
-          ),
-        );
+  final idImagePath = onboardingState.frontImagePath;
+  if (idImagePath.isEmpty) {
+    ErrorDialog.show(
+      context,
+      title: 'Missing ID',
+      message: 'ID document path not found. Please re-upload your document.',
+      primaryActionLabel: 'Go Back',
+      onPrimaryAction: () => Navigator.pop(context),
+    );
+    return;
   }
+
+  context.read<FaceMatchBloc>().add(MatchFacesRequested(
+    selfiePath: _capturedImagePath!,
+    idImagePath: idImagePath,
+  ));
+}
 
   @override
-  Widget build(BuildContext context) {
-    return BlocListener<OnboardingBloc, OnboardingState>(
-      listener: (context, state) {
-        if (state is OnboardingLoading) {
-          LoadingOverlay.show(context, message: 'Verifying facial biometrics…');
-        } else {
-          LoadingOverlay.hide(context);
-        }
-        if (state is FaceCaptureUploaded) {
-          Navigator.push(context, fadeRoute(const VerificationStatusScreen()));
-        } else if (state is OnboardingError) {
-          ErrorDialog.show(
-            context,
-            title: 'Verification Failed',
-            message: state.message,
-            primaryActionLabel: 'Try Again',
-          );
-        }
+Widget build(BuildContext context) {
+  return BlocProvider<FaceMatchBloc>(
+    create: (_) => sl<FaceMatchBloc>(),
+    child: Builder(
+      builder: (context) {
+        return BlocListener<FaceMatchBloc, FaceMatchState>(
+          listener: (context, faceMatchState) {
+            if (faceMatchState is FaceMatchLoading) {
+              LoadingOverlay.show(context, message: 'Comparing faces…');
+            } else if (faceMatchState is FaceMatchResult) {
+              LoadingOverlay.hide(context);
+              if (faceMatchState.isMatch) {
+                final livenessData = {
+                  'blink_detected': _blinkDetected,
+                  'smile_detected': _smileDetected,
+                  'head_turn_left': _leftTurnDetected,
+                  'head_turn_right': _rightTurnDetected,
+                  'similarity_score': faceMatchState.similarity,
+                  'timestamp': DateTime.now().toIso8601String(),
+                };
+                context.read<OnboardingBloc>().add(
+                      UploadFaceCaptureEvent(
+                        imagePath: _capturedImagePath!,
+                        livenessVerified: true,
+                        livenessData: livenessData,
+                      ),
+                    );
+              } else {
+                final score =
+                    (faceMatchState.similarity * 100).toStringAsFixed(1);
+                ErrorDialog.show(
+                  context,
+                  title: 'Face Mismatch',
+                  message:
+                      'Your selfie does not match your ID document (${score}% match). '
+                      'Please ensure you uploaded the correct ID and retake your selfie.',
+                  primaryActionLabel: 'Retake Selfie',
+                  onPrimaryAction: _retake,
+                );
+              }
+            } else if (faceMatchState is FaceMatchError) {
+              LoadingOverlay.hide(context);
+              ErrorDialog.show(
+                context,
+                title: 'Verification Error',
+                message: faceMatchState.message,
+                primaryActionLabel: 'Retry',
+                onPrimaryAction: _retake,
+              );
+            }
+          },
+          child: BlocListener<OnboardingBloc, OnboardingState>(
+            listener: (context, state) {
+              if (state is OnboardingLoading) {
+                LoadingOverlay.show(
+                    context, message: 'Verifying facial biometrics…');
+              } else {
+                LoadingOverlay.hide(context);
+              }
+              if (state is FaceCaptureUploaded) {
+                Navigator.push(
+                    context, fadeRoute(const VerificationStatusScreen()));
+              } else if (state is OnboardingError) {
+                ErrorDialog.show(
+                  context,
+                  title: 'Verification Failed',
+                  message: state.message,
+                  primaryActionLabel: 'Try Again',
+                );
+              }
+            },
+            child: Scaffold(
+              backgroundColor: Colors.black,
+              body: _capturedImagePath != null
+                  ? _buildPreviewScreen(context)
+                  : _permissionDenied
+                      ? _buildPermissionDenied()
+                      : _buildCameraScreen(),
+            ),
+          ),
+        );
       },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: _capturedImagePath != null
-            ? _buildPreviewScreen()
-            : _permissionDenied
-                ? _buildPermissionDenied()
-                : _buildCameraScreen(),
-      ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPermissionDenied() {
     return Center(
@@ -684,149 +755,227 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
     );
   }
 
-  Widget _buildPreviewScreen() {
-    return Stack(
-      children: [
-        SizedBox.expand(
-            child: Image.file(File(_capturedImagePath!), fit: BoxFit.cover)),
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Colors.black.withOpacity(0.5),
-                Colors.transparent,
-                Colors.transparent,
-                Colors.black.withOpacity(0.8),
-              ],
-            ),
-          ),
-        ),
-        // DEBUG OVERLAY
-        Positioned(
-          top: 60,
-          left: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.95),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.yellow, width: 2),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Verification Progress',
-                    style: TextStyle(
-                        color: Colors.yellow,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12)),
-                const SizedBox(height: 4),
-                _buildDebugRow('Blink', _blinkDetected),
-                _buildDebugRow('Smile', _smileDetected),
-                _buildDebugRow('Left Turn', _leftTurnDetected),
-                _buildDebugRow('Right Turn', _rightTurnDetected),
-                const Divider(color: Colors.white24, height: 8),
-                Text(
-                    'All Pass: ${_blinkDetected && _smileDetected && _leftTurnDetected && _rightTurnDetected}',
-                    style: TextStyle(
-                      color: (_blinkDetected &&
-                              _smileDetected &&
-                              _leftTurnDetected &&
-                              _rightTurnDetected)
-                          ? Colors.green
-                          : Colors.red,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    )),
-              ],
-            ),
-          ),
-        ),
-        SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: Row(
-                  children: const [
-                    StepCounterBadge(currentStep: 4, totalSteps: 5)
-                  ],
-                ),
-              ),
-              const Spacer(),
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.95),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.verified, color: Colors.white, size: 32),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Verification Passed!\nYour identity has been confirmed.',
-                        style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
-                child: Column(
-                  children: [
-                    PrimaryButton(
-                        label: AppStrings.faceConfirm, onPressed: _onConfirm),
-                    const SizedBox(height: 12),
-                    SecondaryButton(
-                      label: AppStrings.faceRetake,
-                      onPressed: _retake,
-                      leadingIcon: Icons.refresh_rounded,
-                      isDark: true,
-                    ),
-                  ],
-                ),
-              ),
+  Widget  _buildPreviewScreen(BuildContext context) {
+  return Stack(
+    children: [
+      // ── Full screen selfie preview ──────────────────────────
+      SizedBox.expand(
+        child: Image.file(File(_capturedImagePath!), fit: BoxFit.cover),
+      ),
+
+      // ── Gradient overlay ────────────────────────────────────
+      Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black.withOpacity(0.6),
+              Colors.transparent,
+              Colors.transparent,
+              Colors.black.withOpacity(0.9),
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _buildDebugRow(String label, bool value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          Icon(
-            value ? Icons.check_circle : Icons.cancel,
-            color: value ? Colors.green : Colors.red,
-            size: 14,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            '$label: $value',
-            style: TextStyle(
-              color: value ? Colors.green : Colors.red,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
-    );
-  }
+
+      SafeArea(
+        child: Column(
+          children: [
+            // ── Top bar ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const StepCounterBadge(currentStep: 4, totalSteps: 5),
+                  // Liveness passed badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.successDim,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.success.withOpacity(0.4)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.verified_user_rounded,
+                            size: 12, color: AppColors.success),
+                        SizedBox(width: 5),
+                        Text(
+                          'Liveness Passed',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // ── Liveness checklist summary ─────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.75),
+                  borderRadius: BorderRadius.circular(16),
+                  border:
+                      Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _SummaryCheck(
+                        label: 'Blink', passed: _blinkDetected),
+                    _SummaryCheck(
+                        label: 'Smile', passed: _smileDetected),
+                    _SummaryCheck(
+                        label: 'Left', passed: _leftTurnDetected),
+                    _SummaryCheck(
+                        label: 'Right', passed: _rightTurnDetected),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Face match status ─────────────────────────────
+            BlocBuilder<FaceMatchBloc, FaceMatchState>(
+              builder: (context, state) {
+                if (state is FaceMatchResult) {
+                  final score =
+                      (state.similarity * 100).toStringAsFixed(1);
+                  return Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: state.isMatch
+                            ? AppColors.successDim
+                            : AppColors.errorDim,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: state.isMatch
+                              ? AppColors.success.withOpacity(0.4)
+                              : AppColors.error.withOpacity(0.4),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            state.isMatch
+                                ? Icons.face_retouching_natural_rounded
+                                : Icons.no_accounts_rounded,
+                            color: state.isMatch
+                                ? AppColors.success
+                                : AppColors.error,
+                            size: 32,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  state.isMatch
+                                      ? 'Face Match Confirmed'
+                                      : 'Face Mismatch Detected',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: state.isMatch
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Similarity score: $score%',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                // Default — waiting for user to tap confirm
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.successDim,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                          color: AppColors.success.withOpacity(0.4)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.verified,
+                            color: AppColors.success, size: 32),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Liveness Verified!\nTap confirm to match against your ID.',
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // ── Action buttons ────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              child: Column(
+                children: [
+                  PrimaryButton(
+                    label: AppStrings.faceConfirm,
+                    onPressed: () => _onConfirm(context),
+                  ),
+                  const SizedBox(height: 12),
+                  SecondaryButton(
+                    label: AppStrings.faceRetake,
+                    onPressed: _retake,
+                    leadingIcon: Icons.refresh_rounded,
+                    isDark: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 }
 
 class _LivenessCheckItem extends StatelessWidget {
@@ -903,4 +1052,35 @@ class _FaceOvalPainter extends CustomPainter {
   bool shouldRepaint(_FaceOvalPainter oldDelegate) =>
       oldDelegate.faceDetected != faceDetected ||
       oldDelegate.currentStep != currentStep;
+}
+
+
+class _SummaryCheck extends StatelessWidget {
+  final String label;
+  final bool passed;
+
+  const _SummaryCheck({required this.label, required this.passed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          passed ? Icons.check_circle_rounded : Icons.cancel_rounded,
+          color: passed ? AppColors.success : AppColors.error,
+          size: 20,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            color: passed ? AppColors.success : AppColors.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 }

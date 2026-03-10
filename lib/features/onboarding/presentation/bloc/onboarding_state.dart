@@ -40,7 +40,11 @@ class BvnVerified extends OnboardingState {
 
 /// Document uploaded to backend
 class DocumentUploaded extends OnboardingState {
-  const DocumentUploaded();
+  final String frontImagePath;
+  const DocumentUploaded({required this.frontImagePath});
+
+  @override
+  List<Object?> get props => [frontImagePath];
 }
 
 /// Selfie/face capture uploaded
