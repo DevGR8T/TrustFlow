@@ -29,6 +29,10 @@ My Solution (Live Market Data): I integrated a real REST API using Dio to fetch 
 Problem: If a user's phone is picked up by someone else, sensitive KYC data is immediately visible with no access control.
 My Solution (PIN + Biometric Authentication): I implemented a custom 4-digit PIN system with SHA-256 hashing stored in Android EncryptedSharedPreferences via flutter_secure_storage. On supported devices, users can authenticate with fingerprint or Face ID as a faster alternative. The PIN is never stored in plain text — only its hash — which is the same principle used by real banking apps.
 
+6. No Real Biometric Verification
+Problem: Most KYC demo apps fake the face verification step with a simple camera capture and no actual identity check.  
+My Solution (On-Device ML Face Matching): I integrated Google ML Kit for real face detection and liveness checks (blink, smile, head turns). After liveness passes, I run MobileFaceNet TFLite on-device to extract 128-dimensional face embeddings from both the selfie and the ID document photo, then compare them using cosine similarity. The entire pipeline runs on the device — no server required. A match score above 60% approves the verification.
+
 
 
 ## 📱 DOWNLOAD APP
@@ -69,6 +73,8 @@ My Solution (PIN + Biometric Authentication): I implemented a custom 4-digit PIN
 - Local Storage: shared_preferences (via HydratedBloc).
 - Environment Variables: flutter_dotenv
 - Image Handling: image_picker & flutter_image_compress. 
+- On-Device ML : tflite_flutter, google_mlkit_face_detection
+- Face Matching: MobileFaceNet TFLite (128-dim cosine similarity)
 
 
 ## 🔄 CI/CD Pipeline (Automated Builds)
@@ -141,6 +147,11 @@ After every successful run, you can download the latest APK from the GitHub Acti
 - Clean Architecture structure  
 - Mocked Identity Verification (BVN/NIN) & Live Market Data via REST API.
 - Secure API key management via .env
+- Real face detection using Google ML Kit
+- Liveness checks — blink, smile, head turn left, head turn right
+- MobileFaceNet TFLite face matching — selfie vs ID document
+- Cosine similarity score displayed after verification
+- Entire biometric pipeline runs on-device, no server needed
 
 
 ## 📂 PROJECT STRUCTURE
@@ -158,6 +169,8 @@ lib
 │   ├── error
 │   │   ├── exceptions.dart
 │   │   └── failures.dart
+│   ├── ml
+│   │   └── face_match_service.dart
 │   ├── security
 │   │   ├── auth_guard.dart
 │   │   ├── biometric_service.dart
@@ -228,6 +241,7 @@ lib
 │       │   │   └── verification_response_model.dart
 │       │   └── repositories
 │       │       ├── document_capture_repository_impl.dart
+│       │       ├── face_match_repository_impl.dart
 │       │       ├── liveness_detector_repository_impl.dart
 │       │       ├── mock_verification_repository.dart
 │       │       └── verification_repository_impl.dart
@@ -240,16 +254,21 @@ lib
 │       │   │   └── verification_result.dart
 │       │   ├── repositories
 │       │   │   ├── document_capture_repository.dart
+│       │   │   ├── face_match_repository.dart
 │       │   │   ├── liveness_detector_repository_impl.dart
 │       │   │   └── verification_repository.dart
 │       │   └── usecases
 │       │       ├── get_saved_progress.dart
+│       │       ├── match_faces.dart
 │       │       ├── save_progress.dart
 │       │       ├── upload_document.dart
 │       │       ├── upload_face_capture.dart
 │       │       └── verify_bvn.dart
 │       └── presentation
 │           ├── bloc
+│           │   ├── face_match_bloc.dart
+│           │   ├── face_match_event.dart
+│           │   ├── face_match_state.dart
 │           │   ├── onboarding_bloc.dart
 │           │   ├── onboarding_event.dart
 │           │   └── onboarding_state.dart
@@ -269,6 +288,7 @@ lib
 │               ├── progress_indicator_widget.dart
 │               └── subtle_grid_background.dart
 └── main.dart
+
 ```
 
 
