@@ -2,9 +2,9 @@ name: TrustFlow CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   build:
@@ -12,18 +12,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # ── 1. Checkout code ───────────────────────────────────────
+      # ── 1. Checkout code (with Git LFS for tflite model) ───────
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
-      # ── 2. Set up Java (required for Android builds) ───────────
+      # ── 2. Pull Git LFS files ──────────────────────────────────
+      - name: Pull LFS files
+        run: git lfs pull
+
+      # ── 3. Set up Java (required for Android builds) ───────────
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      # ── 3. Set up Flutter SDK ──────────────────────────────────
+      # ── 4. Set up Flutter SDK ──────────────────────────────────
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -31,36 +37,43 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # ── 4. Create .env file from GitHub Secret ─────────────────
+      # ── 5. Create .env file from GitHub Secrets ────────────────
       - name: Create .env file
         run: |
           echo "EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}" > .env
-          echo "PAYSTACK_SECRET_KEY=${{ secrets.PAYSTACK_SECRET_KEY }}" >> .env
+          echo "PAYSTACK_PUBLIC_KEY=${{ secrets.PAYSTACK_PUBLIC_KEY }}" >> .env
 
-
-      # ── 5. Install dependencies ────────────────────────────────
+      # ── 6. Install dependencies ────────────────────────────────
       - name: Install dependencies
         run: flutter pub get
 
-      # ── 6. Analyze code quality ────────────────────────────────
+      # ── 7. Analyze code quality ────────────────────────────────
       - name: Analyze code
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      # ── 7. Run tests ───────────────────────────────────────────
+      # ── 8. Run tests ───────────────────────────────────────────
       - name: Run tests
         run: flutter test
 
-      # ── 8. Accept Android licenses ────────────────────────────
+      # ── 9. Accept Android licenses ────────────────────────────
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
 
-      # ── 9. Build release APK ──────────────────────────────────
+      # ── 10. Configure Gradle (fix file watcher issue on CI) ────
+      - name: Configure Gradle
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.daemon=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.configureondemand=false" >> ~/.gradle/gradle.properties
+
+      # ── 11. Build release APK (only on push) ───────────────────
       - name: Build release APK
         if: github.event_name == 'push'
         run: flutter build apk --release --no-shrink
 
-      # ── 10. Upload APK as artifact ──────────────────────────────
+      # ── 12. Upload APK as artifact (only on push) ──────────────
       - name: Upload APK artifact
+        if: github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: trustflow-release-apk
