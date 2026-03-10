@@ -69,7 +69,9 @@ jobs:
       # ── 11. Build release APK (only on push) ───────────────────
       - name: Build release APK
         if: github.event_name == 'push'
-        run: flutter build apk --release --no-shrink
+        run: |
+          flutter build apk --release --no-shrink
+          cd android && ./gradlew --stop || true
 
       # ── 12. Upload APK as artifact (only on push) ──────────────
       - name: Upload APK artifact
